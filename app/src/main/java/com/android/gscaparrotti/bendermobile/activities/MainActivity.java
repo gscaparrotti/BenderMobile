@@ -15,7 +15,6 @@ import android.view.MenuItem;
 import android.widget.Toolbar;
 
 import com.android.gscaparrotti.bendermobile.R;
-import com.android.gscaparrotti.bendermobile.network.ServerInteractor;
 import com.android.gscaparrotti.bendermobile.fragments.AddDishFragment;
 import com.android.gscaparrotti.bendermobile.fragments.MainFragment;
 import com.android.gscaparrotti.bendermobile.fragments.SettingsFragment;
@@ -24,7 +23,7 @@ import com.android.gscaparrotti.bendermobile.fragments.TableFragment;
 public class MainActivity extends Activity implements TableFragment.OnTableFragmentInteractionListener, MainFragment.OnMainFragmentInteractionListener, AddDishFragment.OnAddDishFragmentInteractionListener {
 
     /*
-        Il warning è un falso positivo: se toastContext non venisse riassegnato
+        Il warning è un falso positivo: se commonContext non venisse riassegnato
         nel metodo onCreate e contenesse, ad esempio, una Activity, che tendenzialmente
         ha un ciclo vitale più corto di quello dell'applicazione, allora ci sarebbe
         un riferimento statico ad un oggetto che verrebbe altrimenti eliminato dal
@@ -34,7 +33,7 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
         2) il riferimento, se anche fosse all'Activity, sarebbe comunque a quella corrente
         e non a quelle da buttare via, perchè viene aggiornato nel metodo onCreate
      */
-    public static Context toastContext;
+    public static Context commonContext;
     public static Handler UIHandler;
 
     static {
@@ -48,7 +47,7 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        toastContext = this.getApplicationContext();
+        commonContext = this.getApplicationContext();
         setContentView(R.layout.activity_main);
         Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
         setActionBar(myToolbar);
@@ -78,18 +77,6 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
     protected void onStop() {
         super.onStop();
         Log.d("STOP", "STOP");
-        final ServerInteractor interactor = ServerInteractor.getInstance();
-        final String ip = getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent");
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    interactor.sendCommandAndGetResult(ip, 6789, "CLOSE CONNECTION");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
     }
 
     @Override

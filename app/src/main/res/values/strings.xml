@@ -32,4 +32,9 @@
     <string name="PrezzoTotale">"Conto Totale: "</string>
     <string name="valute">€</string>
     <string name="NomeTavolo">Inserisci qui il nuovo nome del tavolo</string>
+    <string name="ErroreSocketConChiusura">Errore di comunicazione (la socket è stata chiusa)</string>
+    <string name="ErroreSocketSenzaChiusura">Errore di comunicazione (la socket NON è stata chiusa)</string>
+    <string name="DatiNonValidi">Ricevuti dati non validi</string>
+    <string name="DatiNonValidiIngresso">Forniti dati non validi</string>
+    <string name="GenericError">Errore Generico</string>
 </resources>

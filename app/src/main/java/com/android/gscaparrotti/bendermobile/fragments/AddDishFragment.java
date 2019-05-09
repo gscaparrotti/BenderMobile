@@ -3,9 +3,8 @@ package com.android.gscaparrotti.bendermobile.fragments;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,11 +18,14 @@ import android.widget.Toast;
 import com.android.gscaparrotti.bendermobile.R;
 import com.android.gscaparrotti.bendermobile.activities.MainActivity;
 import com.android.gscaparrotti.bendermobile.network.ServerInteractor;
+import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
+import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
+import com.android.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import model.Dish;
 import model.IDish;
 import model.IMenu;
 import model.Order;
@@ -97,7 +99,7 @@ public class AddDishFragment extends Fragment {
                         newDish = new OrderedDish(nameString, priceDouble, OrderedDish.Moments.ZERO, 0);
                     }
                     Order newOrder = new Order(tableNumber, newDish, new Pair<>(1, 0));
-                    new ServerDishUploader().execute(newOrder);
+                    new ServerDishUploader(AddDishFragment.this).execute(newOrder);
                 } catch (NumberFormatException e) {
                     if (AddDishFragment.this.getActivity() != null) {
                         Toast.makeText(AddDishFragment.this.getActivity(), e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -110,10 +112,10 @@ public class AddDishFragment extends Fragment {
         newNameButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new ServerNameUploader().execute(newNameEditText.getText().toString());
+                new ServerNameUploader(AddDishFragment.this).execute(newNameEditText.getText().toString());
             }
         });
-        new ServerMenuDownloader().execute();
+        new ServerMenuDownloader(AddDishFragment.this).execute();
         return view;
     }
 
@@ -134,7 +136,7 @@ public class AddDishFragment extends Fragment {
         mListener = null;
     }
 
-    public void aggiorna(final List<IDish> newList) {
+    private void update(final List<IDish> newList) {
         if (list != null) {
             list.clear();
             list.addAll(newList);
@@ -150,13 +152,14 @@ public class AddDishFragment extends Fragment {
 
         private LayoutInflater inflater;
 
-        public AddDishAdapter(Context context, List<IDish> persone) {
+        AddDishAdapter(Context context, List<IDish> persone) {
             super(context, 0, persone);
             inflater = LayoutInflater.from(context);
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        @NonNull
+        public View getView(int position, View convertView,@NonNull ViewGroup parent) {
             if (convertView == null) {
                 convertView = inflater.inflate(R.layout.item_dish_to_add, parent, false);
             }
@@ -168,158 +171,102 @@ public class AddDishFragment extends Fragment {
                 @Override
                 public void onClick(View v) {
                     Order order = new Order(tableNumber, new OrderedDish(dish, OrderedDish.Moments.ZERO), new Pair<>(1, 0));
-                    new ServerDishUploader().execute(order);
+                    new ServerDishUploader(AddDishFragment.this).execute(order);
                 }
             });
             return convertView;
         }
     }
 
-    private class ServerMenuDownloader extends AsyncTask<Void, Void, List<IDish>> {
+    private class ServerMenuDownloader extends FragmentNetworkingBenderAsyncTask<Void, List<IDish>> {
 
-        private String ip;
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            if (isAdded()) {
-                ip = getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent");
-            } else {
-                this.cancel(true);
-            }
+        ServerMenuDownloader(Fragment fragment) {
+            super(fragment);
         }
 
         @Override
-        protected List<IDish> doInBackground(Void... params) {
-            //qui effettuerò la chiamata al server
-            final List<IDish> temp = new LinkedList<>();
-            final ServerInteractor dataDownloader = ServerInteractor.getInstance();
-            final Object input = dataDownloader.sendCommandAndGetResult(ip, 6789, "GET MENU");
-            if (input instanceof Exception) {
-                final Exception e = (Exception) input;
-                e.printStackTrace();
-                Log.e("exception", e.toString());
-                temp.add(new Dish(e.toString(), 0, 1));
-            } else if (input instanceof IMenu) {
-                final IMenu datas = (IMenu) input;
-                for(final IDish d : datas.getDishesArray()) {
-                    temp.add(d);
-                }
+        protected BenderAsyncTaskResult<List<IDish>> innerDoInBackground(Void[] objects) {
+            final Object input = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "GET MENU");
+            if (input instanceof IMenu) {
+                return new BenderAsyncTaskResult<>(Arrays.asList(((IMenu) input).getDishesArray()));
             }
-            return temp;
+            return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidi)));
         }
 
         @Override
-        protected void onPostExecute(List<IDish> orders) {
-            super.onPostExecute(orders);
-            try {
-                if (isVisible()) {
-                    AddDishFragment.this.aggiorna(orders);
-                }
-            } catch (Exception e) {
-                if (isAdded()) {
-                    Toast.makeText(MainActivity.toastContext, "Chiamare Jack", Toast.LENGTH_LONG).show();
-                }
-            }
+        protected void innerOnSuccessfulPostExecute(BenderAsyncTaskResult<List<IDish>> result) {
+            AddDishFragment.this.update(result.getResult());
+        }
+
+        @Override
+        protected void innerOnUnsuccessfulPostExecute(BenderAsyncTaskResult<List<IDish>> error) {
+            Toast.makeText(MainActivity.commonContext, error.getError().getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    private class ServerDishUploader extends AsyncTask<Order, Void, String> {
+    private class ServerDishUploader extends FragmentNetworkingBenderAsyncTask<Order, Empty> {
 
-        private String output;
-        private String ip;
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            if (isAdded()) {
-                output = getActivity().getString(R.string.orderAddSuccess);
-                ip = getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent");
-            } else {
-                this.cancel(true);
-            }
+        ServerDishUploader(Fragment fragment) {
+            super(fragment);
         }
 
         @Override
-        protected String doInBackground(Order... params) {
-            final ServerInteractor uploader = ServerInteractor.getInstance();
-            for (final Order order : params) {
-                Object result = uploader.sendCommandAndGetResult(ip, 6789, order);
-                if (result instanceof Exception) {
-                    final Exception e = (Exception) result;
-                    e.printStackTrace();
-                    Log.e("exception", e.toString());
-                    output = e.toString();
-                    break;
-                } else if (result instanceof String) {
-                    final String stringResult = (String) result;
+        protected BenderAsyncTaskResult<Empty> innerDoInBackground(Order[] objects) {
+            for (final Order order : objects) {
+                Object result = new ServerInteractor().sendCommandAndGetResult(ip, 6789, order);
+                if (result instanceof String) {
                     if (!result.equals("ORDER ADDED CORRECTLY")) {
-                        output = stringResult;
-                        break;
+                        return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidiIngresso)));
                     }
                 }
             }
-            return output;
+            return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
 
         @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            if (isAdded()) {
-                Toast.makeText(MainActivity.toastContext, s, Toast.LENGTH_SHORT).show();
-            }
+        protected void innerOnSuccessfulPostExecute(BenderAsyncTaskResult<Empty> result) {
+            Toast.makeText(MainActivity.commonContext, MainActivity.commonContext.getString(R.string.orderAddSuccess), Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        protected void innerOnUnsuccessfulPostExecute(BenderAsyncTaskResult<Empty> error) {
+            Toast.makeText(MainActivity.commonContext, error.getError().getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    private class ServerNameUploader extends AsyncTask<String, Void, String> {
+    private class ServerNameUploader extends FragmentNetworkingBenderAsyncTask<String, Empty> {
 
-        private String output;
-        private String ip;
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            if (isAdded()) {
-                output = getActivity().getString(R.string.NameUpdateSuccess);
-                ip = getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent");
-            } else {
-                this.cancel(true);
-            }
+        ServerNameUploader(Fragment fragment) {
+            super(fragment);
         }
 
         @Override
-        protected String doInBackground(String... params) {
-            final ServerInteractor uploader = ServerInteractor.getInstance();
-            for (final String name : params) {
+        protected BenderAsyncTaskResult<Empty> innerDoInBackground(String[] objects) {
+            for (final String name : objects) {
                 Object result;
                 if (name.length() > 0) {
-                    result = uploader.sendCommandAndGetResult(ip, 6789, "SET NAME " + tableNumber + " " + name);
+                    result = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "SET NAME " + tableNumber + " " + name);
                 } else {
-                    result = uploader.sendCommandAndGetResult(ip, 6789, "REMOVE NAME " + tableNumber);
+                    result = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "REMOVE NAME " + tableNumber);
                 }
-                if (result instanceof Exception) {
-                    final Exception e = (Exception) result;
-                    e.printStackTrace();
-                    Log.e("exception", e.toString());
-                    output = e.toString();
-                    break;
-                } else if (result instanceof String) {
-                    final String stringResult = (String) result;
+                if (result instanceof String) {
                     if (!result.equals("NAME SET CORRECTLY")) {
-                        output = stringResult;
-                        break;
+                        return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidiIngresso)));
                     }
                 }
             }
-            return output;
+            return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
 
         @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            if (isAdded()) {
-                Toast.makeText(MainActivity.toastContext, s, Toast.LENGTH_SHORT).show();
-            }
+        protected void innerOnSuccessfulPostExecute(BenderAsyncTaskResult<Empty> result) {
+            Toast.makeText(MainActivity.commonContext, MainActivity.commonContext.getString(R.string.NameUpdateSuccess), Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        protected void innerOnUnsuccessfulPostExecute(BenderAsyncTaskResult<Empty> error) {
+            Toast.makeText(MainActivity.commonContext, error.getError().getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+
 }

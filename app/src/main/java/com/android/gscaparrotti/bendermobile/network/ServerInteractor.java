@@ -1,10 +1,11 @@
 package com.android.gscaparrotti.bendermobile.network;
 
+import com.android.gscaparrotti.bendermobile.R;
+import com.android.gscaparrotti.bendermobile.activities.MainActivity;
+
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -14,83 +15,33 @@ import java.net.Socket;
 public class ServerInteractor {
 
     private Socket socket;
+    private boolean used = false;
 
-    public static ServerInteractor getInstance() {
-        return new ServerInteractor();
-    }
-
-    private ServerInteractor() {
+    public ServerInteractor() {
         socket = new Socket();
     }
 
     public Object sendCommandAndGetResult(final String address, final int port, final Object input) {
-        Object datas;
-        if (socket == null) {
-            socket = new Socket();
+        if (used) {
+            throw new IllegalStateException("You cannot use a ServerInteractor twice");
         }
-        if (!socket.isConnected()) {
-            try {
-                socket.connect(new InetSocketAddress(address, port), 5000);
-                socket.setSoTimeout(5000);
-            } catch (IOException e) {
-                try {
-                    datas = e;
-                    interactionEnded();
-                    return datas;
-                } catch (Exception e1) {
-                    datas = e1;
-                    return datas;
-                }
-            }
-        }
+        used = true;
         try {
-            final OutputStream os = socket.getOutputStream();
-            final InputStream is = socket.getInputStream();
-            final ObjectOutputStream outputStream = new ObjectOutputStream(os);
-            outputStream.writeObject(input);
-            final ObjectInputStream inputStream = new ObjectInputStream(is);
-            datas = inputStream.readObject();
-            interactionEnded(); //aggiunto dopo
-        } catch (IOException | ClassNotFoundException e2) {
-            try {
-                interactionEnded();
-                datas = e2;
-                return datas;
-            } catch (IOException e3) {
-                datas = e3;
-                return datas;
-            }
-        }
-        return datas;
-    }
-
-    private void interactionEnded() throws IOException {
-        if (socket != null) {
+            socket.connect(new InetSocketAddress(address, port), 5000);
+            socket.setSoTimeout(5000);
+            socket.setTcpNoDelay(true);
+            new ObjectOutputStream(socket.getOutputStream()).writeObject(input);
+            final Object data = new ObjectInputStream(socket.getInputStream()).readObject();
             socket.close();
-        }
-        socket = null;
-    }
-
-    private class ServerReceiver extends Thread {
-
-        final ObjectInputStream ois;
-        final boolean keepListening = true;
-
-        private ServerReceiver(ObjectInputStream ois) {
-            this.ois = ois;
-        }
-
-        @Override
-        public void run() {
-            super.run();
-            while (keepListening) {
-                try {
-                    Object inputObject = ois.readObject();
-
-                } catch (ClassNotFoundException | IOException e) {
-                    e.printStackTrace();
-                }
+            return data;
+        } catch (final IOException | ClassNotFoundException e) {
+            try {
+                socket.close();
+                throw new BenderNetworkException(MainActivity.commonContext.getString(R.string.ErroreSocketConChiusura));
+            } catch (final IOException e1) {
+                throw new BenderNetworkException(MainActivity.commonContext.getString(R.string.ErroreSocketSenzaChiusura));
             }
         }
     }
+
 }

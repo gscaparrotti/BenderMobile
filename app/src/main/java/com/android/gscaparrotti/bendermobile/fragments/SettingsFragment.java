@@ -40,7 +40,7 @@ public class SettingsFragment extends Fragment {
                     editor.commit();
                     currentIP.setText("Current IP: " + getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent"));
                 } else {
-                    Toast.makeText(MainActivity.toastContext, "IP non valido", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.commonContext, "Invalid IP", Toast.LENGTH_SHORT).show();
                 }
             }
         });

@@ -4,8 +4,8 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,11 +21,13 @@ import android.widget.Toast;
 import com.android.gscaparrotti.bendermobile.R;
 import com.android.gscaparrotti.bendermobile.activities.MainActivity;
 import com.android.gscaparrotti.bendermobile.network.ServerInteractor;
+import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
+import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
+import com.android.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +80,8 @@ public class TableFragment extends Fragment {
             text.setText(getString(R.string.ViewAllPendingOrders));
             Button add = (Button) view.findViewById(R.id.addToTable);
             add.setEnabled(false);
+            TextView price = (TextView) view.findViewById(R.id.totalPrice);
+            price.setVisibility(View.INVISIBLE);
         }
         ListView listView = (ListView) view.findViewById(R.id.dishesList);
         adapter = new DishAdapter(getActivity(), list);
@@ -106,9 +110,9 @@ public class TableFragment extends Fragment {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (TableFragment.this.isVisible() && list != null) {
-                    aggiorna(new ArrayList<>(list));
+                    updateOrders(new ArrayList<>(list));
                     if (!isChecked) {
-                        new ServerOrdersDownloader().execute(tableNumber);
+                        new ServerOrdersDownloader(TableFragment.this).execute(tableNumber);
                     }
                 }
             }
@@ -137,9 +141,21 @@ public class TableFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mListener = null;
+    }
 
+    @Override
+    public void onStop() {
+        super.onStop();
+        super.onDestroyView();
+        Log.d("FRAGMENT STOP", "FRAGMENT STOP");
+        stopTasks();
+    }
 
-    public void aggiorna(final List<Order> newList) {
+    private void updateOrders(final List<Order> newList) {
         if (list != null) {
             list.clear();
             final CheckBox filter = (CheckBox) getView().findViewById(R.id.filterCheckBox);
@@ -189,32 +205,18 @@ public class TableFragment extends Fragment {
         }
     }
 
-    public void aggiornaNome (final String name) {
-        if (getView() != null) {
+    private void updateName(final String name) {
+        if (getView() != null && tableNumber > 0) {
             TextView nameView = (TextView) getView().findViewById(R.id.tableTitle);
             String newName = name.length() > 0 ? (" - " + name) : "";
             nameView.setText(getString(R.string.tableTitle) + " " + Integer.toString(tableNumber) + newName);
         }
     }
 
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mListener = null;
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        super.onDestroyView();
-        Log.d("FRAGMENT STOP", "FRAGMENT STOP");
-        stopTasks();
-    }
-
     private synchronized void updateAndStartTasks() {
         //if timer is running, then just update, otherwise create timer and start it
         if (timer != null) {
-            new ServerOrdersDownloader().execute(tableNumber);
+            new ServerOrdersDownloader(this).execute(tableNumber);
         } else {
             timer = new Timer();
             timer.schedule(new TimerTask() {
@@ -223,7 +225,7 @@ public class TableFragment extends Fragment {
                         MainActivity.runOnUI(new Runnable() {
                             @Override
                             public void run() {
-                                new ServerOrdersDownloader().execute(tableNumber);
+                                new ServerOrdersDownloader(TableFragment.this).execute(tableNumber);
                             }
                         });
                 }
@@ -257,13 +259,14 @@ public class TableFragment extends Fragment {
 
         private LayoutInflater inflater;
 
-        public DishAdapter(Context context, List<Order> persone) {
+        DishAdapter(Context context, List<Order> persone) {
             super(context, 0, persone);
             inflater = LayoutInflater.from(context);
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        @NonNull
+        public View getView(int position, View convertView,@NonNull ViewGroup parent) {
             if (convertView == null) {
                 convertView = inflater.inflate(R.layout.item_dish, parent, false);
             }
@@ -283,9 +286,9 @@ public class TableFragment extends Fragment {
                     if (tableNumber == 0) {
                         final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(" - ")), order.getDish().getPrice(), 0);
                         final Order newOrder = new Order(order.getTable(), dish, order.getAmounts());
-                        new ServerOrdersUploader().execute(newOrder);
+                        new ServerOrdersUploader(TableFragment.this).execute(newOrder);
                     } else {
-                        new ServerOrdersUploader().execute(order);
+                        new ServerOrdersUploader(TableFragment.this).execute(order);
                     }
                     return true;
                 }
@@ -296,9 +299,9 @@ public class TableFragment extends Fragment {
                     if (tableNumber == 0) {
                         final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(" - ")), order.getDish().getPrice(), 0);
                         final Order newOrder = new Order(order.getTable(), dish, new Pair<>(-1, 1));
-                        new ServerOrdersUploader().execute(newOrder);
+                        new ServerOrdersUploader(TableFragment.this).execute(newOrder);
                     } else {
-                        new ServerOrdersUploader().execute(new Order(order.getTable(), order.getDish(), new Pair<>(-1, 1)));
+                        new ServerOrdersUploader(TableFragment.this).execute(new Order(order.getTable(), order.getDish(), new Pair<>(-1, 1)));
                     }
                 }
             });
@@ -316,152 +319,111 @@ public class TableFragment extends Fragment {
         }
     }
 
-    private class ServerOrdersUploader extends AsyncTask<Order, Void, Boolean> {
+    private class ServerOrdersUploader extends FragmentNetworkingBenderAsyncTask<Order, Empty> {
 
-        private String errorMessage;
-        private String ip;
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            if (isAdded()) {
-                ip = getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent");
-            } else {
-                this.cancel(true);
-            }
+        ServerOrdersUploader(Fragment fragment) {
+            super(fragment);
         }
 
         @Override
-        protected Boolean doInBackground(Order... params) {
-            final ServerInteractor uploader = ServerInteractor.getInstance();
+        protected BenderAsyncTaskResult<Empty> innerDoInBackground(Order[] objects) {
             boolean result = false;
-            final Object resultFromServer = uploader.sendCommandAndGetResult(ip, 6789, params[0]);
-            if (resultFromServer instanceof Exception) {
-                final Exception e = (Exception) resultFromServer;
-                errorMessage = e.toString();
-            } else if (resultFromServer instanceof String) {
+            final Object resultFromServer = new ServerInteractor().sendCommandAndGetResult(ip, 6789, objects[0]);
+            if (resultFromServer instanceof String) {
                 final String stringResult = (String) resultFromServer;
                 if (stringResult.equals("ORDER UPDATED CORRECTLY")) {
-                    result = true;
-                } else {
-                    errorMessage = stringResult;
+                    return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
                 }
             }
-            return result;
+            return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidi)));
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            if (aBoolean) {
-                if (isVisible()) {
-                    Toast.makeText(MainActivity.toastContext, MainActivity.toastContext.getString(R.string.UpdateSuccess), Toast.LENGTH_SHORT).show();
-                }
-                new ServerOrdersDownloader().execute(tableNumber);
-            } else {
-                final List<Order> errors = new LinkedList<>();
-                errors.add(new Order(TableFragment.this.tableNumber, new Dish(errorMessage, 0, 1), new Pair<>(0, 1)));
-                try {
-                    if (isVisible()) {
-                        aggiorna(errors);
-                    }
-                } catch (Exception e) {
-                    if (!(e instanceof NullPointerException) && isAdded()) {
-                        Toast.makeText(MainActivity.toastContext, "Chiamare Jack", Toast.LENGTH_LONG).show();
-                    }
-                }
-            }
+        protected void innerOnSuccessfulPostExecute(BenderAsyncTaskResult<Empty> result) {
+            Toast.makeText(MainActivity.commonContext, MainActivity.commonContext.getString(R.string.UpdateSuccess), Toast.LENGTH_SHORT).show();
+            new ServerOrdersDownloader(TableFragment.this).execute(tableNumber);
+        }
+
+        @Override
+        protected void innerOnUnsuccessfulPostExecute(BenderAsyncTaskResult<Empty> error) {
+            final List<Order> errors = new ArrayList<>(1);
+            errors.add(new Order(TableFragment.this.tableNumber, new Dish(error.getError().getMessage(), 0, 1), new Pair<>(0, 1)));
+            updateOrders(errors);
         }
     }
 
-    private class ServerOrdersDownloader extends AsyncTask<Integer, Void, Pair<List<Order>, String>> {
+    private class ServerOrdersDownloader extends FragmentNetworkingBenderAsyncTask<Integer, Pair<List<Order>, String>> {
 
-        private String ip;
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            if (isAdded()) {
-                ip = getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent");
-            } else {
-                this.cancel(true);
-            }
+        ServerOrdersDownloader(final Fragment fragment) {
+            super(fragment);
         }
 
         @Override
-        protected Pair<List<Order>, String> doInBackground(Integer... params) {
-            //qui effettuerò la chiamata al server
-            final List<Order> temp = new LinkedList<>();
-            Map<Integer, String> names = new HashMap<>();
-            String tableName = null;
-            final ServerInteractor dataDownloader = ServerInteractor.getInstance();
-            Object input = null;
-            if (tableNumber > 0) {
-                input = dataDownloader.sendCommandAndGetResult(ip, 6789, "GET TABLE " + params[0]);
-            } else if (tableNumber == 0) {
-                input = dataDownloader.sendCommandAndGetResult(ip, 6789, "GET PENDING ORDERS");
+        protected BenderAsyncTaskResult<Pair<List<Order>, String>> innerDoInBackground(final Integer[] objects) {
+            final Object receivedOrders;
+            final Object receivedTableNames;
+            final List<Order> outputOrders;
+            final String outputName;
+            if (objects[0] > 0) {
+                receivedOrders = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "GET TABLE " + objects[0]);
+            } else if (objects[0] == 0) {
+                receivedOrders = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "GET PENDING ORDERS");
             } else {
-                //noinspection ThrowableInstanceNeverThrown
-                input = new Exception("Invalid Table Number");
+                return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidi)));
             }
-            final Object tableNameInput = dataDownloader.sendCommandAndGetResult(ip, 6789, "GET NAMES");
-            if (tableNameInput instanceof Map) {
-                //noinspection unchecked
-                names = (Map<Integer, String>) tableNameInput;
-            } else if (tableNameInput instanceof Exception) {
-                final Exception e = (Exception) tableNameInput;
-                Log.e("exception", e.toString());
-                temp.add(new Order(TableFragment.this.tableNumber, new Dish(e.toString(), 0, 1), new Pair<>(0, 1)));
-                stopTasks();
-                return new Pair<>(temp, tableName);
-            }
-            if (input instanceof Exception) {
-                final Exception e = (Exception) input;
-                e.printStackTrace();
-                Log.e("exception", e.toString());
-                temp.add(new Order(TableFragment.this.tableNumber, new Dish(e.toString(), 0, 1), new Pair<>(0, 1)));
-                stopTasks();
-                return new Pair<>(temp, tableName);
-            } else if (input instanceof Map) {
-                //noinspection unchecked
-                final Map<IDish, Pair<Integer, Integer>> datas = (Map<IDish, Pair<Integer, Integer>>) input;
-                for(final Map.Entry<IDish, Pair<Integer, Integer>> entry : datas.entrySet()) {
-                    temp.add(new Order(TableFragment.this.tableNumber, entry.getKey(), entry.getValue()));
-                }
-                tableName = names.get(TableFragment.this.tableNumber);
-            } else if (input instanceof List) {
-                //noinspection unchecked
-                final List<Order> datas = (List<Order>) input;
-                for (final Order o : datas) {
-                    final StringBuilder strbldr = new StringBuilder(o.getDish().getName());
-                    strbldr.append(" - ").append(o.getTable());
-                    if (names.containsKey(o.getTable())) {
-                        strbldr.append(" (").append(names.get(o.getTable())).append(")");
+            receivedTableNames = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "GET NAMES");
+            if ((receivedOrders instanceof Map || receivedOrders instanceof List) && receivedTableNames instanceof Map) {
+                @SuppressWarnings("unchecked")
+                final Map<Integer, String> tableNames = (Map<Integer, String>) receivedTableNames;
+                outputOrders = new LinkedList<>();
+                if (receivedOrders instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    final Map<IDish, Pair<Integer, Integer>> orders = (Map<IDish, Pair<Integer, Integer>>) receivedOrders;
+                    for (final Map.Entry<IDish, Pair<Integer, Integer>> entry : orders.entrySet()) {
+                        outputOrders.add(new Order(TableFragment.this.tableNumber, entry.getKey(), entry.getValue()));
                     }
-                    if (o.getDish() instanceof OrderedDish) {
-                        final OrderedDish originalDish = (OrderedDish) o.getDish();
-                        final OrderedDish tempDish = new OrderedDish(strbldr.toString(), o.getDish().getPrice(), originalDish.getFilterValue(), originalDish);
-                        temp.add(new Order(o.getTable(), tempDish, o.getAmounts()));
-                    } else {
-                        temp.add(new Order(o.getTable(), new Dish(strbldr.toString(), o.getDish().getPrice(), o.getDish().getFilterValue()), o.getAmounts()));
+                    outputName = tableNames.get(objects[0]);
+                } else {
+                    @SuppressWarnings("unchecked")
+                    final List<Order> datas = (List<Order>) receivedOrders;
+                    for (final Order o : datas) {
+                        final StringBuilder strbldr = new StringBuilder(o.getDish().getName());
+                        strbldr.append(" - ").append(o.getTable());
+                        if (tableNames.containsKey(o.getTable())) {
+                            strbldr.append(" (").append(tableNames.get(o.getTable())).append(")");
+                        }
+                        if (o.getDish() instanceof OrderedDish) {
+                            final OrderedDish originalDish = (OrderedDish) o.getDish();
+                            final OrderedDish tempDish = new OrderedDish(strbldr.toString(), o.getDish().getPrice(), originalDish.getFilterValue(), originalDish);
+                            outputOrders.add(new Order(o.getTable(), tempDish, o.getAmounts()));
+                        } else {
+                            outputOrders.add(new Order(o.getTable(), new Dish(strbldr.toString(), o.getDish().getPrice(), o.getDish().getFilterValue()), o.getAmounts()));
+                        }
                     }
+                    outputName = null;
                 }
+            } else {
+                return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidi)));
             }
-            return new Pair<>(temp, tableName);
+            return new BenderAsyncTaskResult<>(new Pair<>(outputOrders, outputName));
         }
 
         @Override
-        protected void onPostExecute(Pair<List<Order>, String> orders) {
-            super.onPostExecute(orders);
-            try {
-                if (isVisible()) {
-                    aggiorna(orders.getX());
-                    aggiornaNome(orders.getY() != null ? orders.getY() : "");
-                }
-            } catch (Exception e) {
-                if (!(e instanceof NullPointerException) && isAdded()) {
-                    Toast.makeText(MainActivity.toastContext, "Chiamare Jack", Toast.LENGTH_LONG).show();
-                }
-            }
+        protected void innerOnSuccessfulPostExecute(final BenderAsyncTaskResult<Pair<List<Order>, String>> result) {
+            commonOnPostExecute(result.getResult());
+        }
+
+        @Override
+        protected void innerOnUnsuccessfulPostExecute(final BenderAsyncTaskResult<Pair<List<Order>, String>> error) {
+            final List<Order> errorOrder = new ArrayList<>(1);
+            errorOrder.add(new Order(TableFragment.this.tableNumber, new Dish(error.getError().getMessage(), 0, 1), new Pair<>(0, 1)));
+            stopTasks();
+            commonOnPostExecute(new Pair<List<Order>, String>(errorOrder, null));
+        }
+
+        private void commonOnPostExecute(final Pair<List<Order>, String> orders) {
+            updateOrders(orders.getX());
+            updateName(orders.getY() != null ? orders.getY() : "");
         }
     }
 
