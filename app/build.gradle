@@ -34,4 +34,7 @@ dependencies {
     compile("com.github.gscaparrotti:BenderModel:develop-SNAPSHOT") {
         changing = true
     }
+    compile ('commons-validator:commons-validator:1.6') {
+        exclude group: 'commons-logging', module: 'commons-logging'
+    }
 }

@@ -3,6 +3,8 @@ package com.android.gscaparrotti.bendermobile.network;
 import com.android.gscaparrotti.bendermobile.R;
 import com.android.gscaparrotti.bendermobile.activities.MainActivity;
 
+import org.apache.commons.validator.routines.InetAddressValidator;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -27,6 +29,9 @@ public class ServerInteractor {
         }
         used = true;
         try {
+            if (!InetAddressValidator.getInstance().isValidInet4Address(address)) {
+                throw new IOException("Invalid address detected: " + address);
+            }
             socket.connect(new InetSocketAddress(address, port), 5000);
             socket.setSoTimeout(5000);
             socket.setTcpNoDelay(true);
