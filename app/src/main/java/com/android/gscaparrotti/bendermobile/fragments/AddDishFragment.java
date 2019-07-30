@@ -5,32 +5,23 @@ import android.app.Fragment;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
-
+import android.widget.*;
 import com.android.gscaparrotti.bendermobile.R;
 import com.android.gscaparrotti.bendermobile.activities.MainActivity;
 import com.android.gscaparrotti.bendermobile.network.ServerInteractor;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.android.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
+import model.*;
 
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-
-import model.IDish;
-import model.IMenu;
-import model.Order;
-import model.OrderedDish;
-import model.Pair;
 
 
 /**
@@ -45,7 +36,7 @@ public class AddDishFragment extends Fragment {
 
     private static final String ARG_PARAM1 = "param1";
     private int tableNumber;
-    private List<IDish> list = new LinkedList<>();
+    private List<IDish> originalList = new LinkedList<>();
     private AddDishAdapter adapter;
 
     private OnAddDishFragmentInteractionListener mListener;
@@ -81,7 +72,7 @@ public class AddDishFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_add_dish, container, false);
         ListView listView = (ListView) view.findViewById(R.id.addDishListView);
-        adapter = new AddDishAdapter(getActivity(), list);
+        adapter = new AddDishAdapter(getActivity(), new LinkedList<IDish>());
         listView.setAdapter(adapter);
         final Button manualOrderButton = (Button) view.findViewById(R.id.buttonAggiungi);
         final EditText price = (EditText) view.findViewById(R.id.editText_prezzo);
@@ -103,6 +94,23 @@ public class AddDishFragment extends Fragment {
                 } catch (NumberFormatException e) {
                     if (AddDishFragment.this.getActivity() != null) {
                         Toast.makeText(AddDishFragment.this.getActivity(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
+        name.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                adapter.clear();
+                for (final IDish dish : originalList) {
+                    if (dish.getName().toLowerCase().contains(s.toString().toLowerCase())) {
+                        adapter.add(dish);
                     }
                 }
             }
@@ -137,13 +145,12 @@ public class AddDishFragment extends Fragment {
     }
 
     private void update(final List<IDish> newList) {
-        if (list != null) {
-            list.clear();
-            list.addAll(newList);
+        if (originalList != null) {
+            originalList.clear();
+            originalList.addAll(newList);
         }
-        if (adapter != null) {
-            adapter.notifyDataSetChanged();
-        }
+        adapter.clear();
+        adapter.addAll(newList);
     }
 
     public interface OnAddDishFragmentInteractionListener { }
