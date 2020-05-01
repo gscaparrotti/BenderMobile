@@ -31,9 +31,7 @@ dependencies {
     compile 'com.android.support:recyclerview-v7:21.0.3'
     compile 'com.android.support:support-v4:21.0.3'
     compile 'me.grantland:autofittextview:0.2.1'
-    compile("com.github.gscaparrotti:BenderModel:develop-SNAPSHOT") {
-        changing = true
-    }
+    compile("com.github.gscaparrotti:BenderModel:ec1731c3d3")
     compile ('commons-validator:commons-validator:1.6') {
         exclude group: 'commons-logging', module: 'commons-logging'
     }
