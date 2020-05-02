@@ -10,7 +10,7 @@ import android.widget.TextView;
 
 import com.android.gscaparrotti.bendermobile.R;
 
-import model.Order;
+import com.github.gscaparrotti.bendermodel.model.Order;
 
 /**
  * Created by gscap_000 on 26/04/2016.

@@ -1,13 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
+    compileOptions {
+        sourceCompatibility 1.8
+        targetCompatibility 1.8
+    }
     compileSdkVersion 21
-    buildToolsVersion '25.0.0'
-
     defaultConfig {
         applicationId "com.android.gscaparrotti.bendermobile"
         minSdkVersion 21
-        targetSdkVersion 21
         versionCode 1
         versionName "1.0"
     }
@@ -26,13 +27,14 @@ configurations.all {
 
 dependencies {
     //compile fileTree(dir: 'libs', include: ['*.jar'])
-    testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:21.0.3'
-    compile 'com.android.support:recyclerview-v7:21.0.3'
-    compile 'com.android.support:support-v4:21.0.3'
-    compile 'me.grantland:autofittextview:0.2.1'
-    compile("com.github.gscaparrotti:BenderModel:ec1731c3d3")
-    compile ('commons-validator:commons-validator:1.6') {
+    implementation 'com.android.support:appcompat-v7:21.0.3'
+    implementation 'com.android.support:recyclerview-v7:21.0.3'
+    implementation 'com.android.support:support-v4:21.0.3'
+    implementation 'me.grantland:autofittextview:0.2.1'
+    implementation 'com.github.gscaparrotti:BenderModel:d3ecf50ee8'
+    implementation 'com.squareup.okhttp3:okhttp:4.6.0'
+    implementation ('commons-validator:commons-validator:1.6') {
         exclude group: 'commons-logging', module: 'commons-logging'
     }
+    testImplementation 'junit:junit:4.12'
 }

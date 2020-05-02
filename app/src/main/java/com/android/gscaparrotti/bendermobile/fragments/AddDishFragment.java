@@ -17,7 +17,7 @@ import com.android.gscaparrotti.bendermobile.network.ServerInteractor;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.android.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
-import model.*;
+import com.github.gscaparrotti.bendermodel.model.*;
 
 import java.util.Arrays;
 import java.util.LinkedList;

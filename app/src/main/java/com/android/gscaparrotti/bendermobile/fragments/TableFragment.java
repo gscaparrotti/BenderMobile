@@ -34,11 +34,11 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import model.Dish;
-import model.IDish;
-import model.Order;
-import model.OrderedDish;
-import model.Pair;
+import com.github.gscaparrotti.bendermodel.model.Dish;
+import com.github.gscaparrotti.bendermodel.model.IDish;
+import com.github.gscaparrotti.bendermodel.model.Order;
+import com.github.gscaparrotti.bendermodel.model.OrderedDish;
+import com.github.gscaparrotti.bendermodel.model.Pair;
 
 public class TableFragment extends Fragment {
 
