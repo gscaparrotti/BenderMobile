@@ -1,12 +1,12 @@
 package com.android.gscaparrotti.bendermobile.utilities;
 
+import android.annotation.SuppressLint;
 import android.app.Fragment;
-
-import com.android.gscaparrotti.bendermobile.network.BenderNetworkException;
 
 public abstract class FragmentNetworkingBenderAsyncTask<INPUT, OUTPUT> extends BenderAsyncTask<INPUT, OUTPUT> {
 
     protected String ip;
+    @SuppressLint("StaticFieldLeak")
     private final Fragment fragment;
 
     public FragmentNetworkingBenderAsyncTask(final Fragment fragment) {
@@ -28,8 +28,8 @@ public abstract class FragmentNetworkingBenderAsyncTask<INPUT, OUTPUT> extends B
     protected final BenderAsyncTaskResult<OUTPUT> doInBackground(final INPUT[] objects) {
         try {
             return innerDoInBackground(objects);
-        } catch (final BenderNetworkException e) {
-            return new BenderAsyncTaskResult<OUTPUT>(e);
+        } catch (final Exception e) {
+            return new BenderAsyncTaskResult<>(e);
         }
     }
 

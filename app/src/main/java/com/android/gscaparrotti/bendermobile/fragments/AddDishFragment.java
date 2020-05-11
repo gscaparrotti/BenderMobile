@@ -10,18 +10,30 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.*;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 import com.android.gscaparrotti.bendermobile.R;
 import com.android.gscaparrotti.bendermobile.activities.MainActivity;
-import com.android.gscaparrotti.bendermobile.network.ServerInteractor;
+import com.android.gscaparrotti.bendermobile.network.HttpServerInteractor;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.android.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
-import com.github.gscaparrotti.bendermodel.model.*;
-
-import java.util.Arrays;
+import com.github.gscaparrotti.bendermodel.model.Dish;
+import com.github.gscaparrotti.bendermodel.model.IDish;
+import com.github.gscaparrotti.bendermodel.model.Order;
+import com.github.gscaparrotti.bendermodel.model.OrderedDish;
+import com.github.gscaparrotti.bendermodel.model.Pair;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import java.util.LinkedList;
 import java.util.List;
+import java9.util.stream.Collectors;
+
+import static com.android.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
 
 
 /**
@@ -35,6 +47,7 @@ import java.util.List;
 public class AddDishFragment extends Fragment {
 
     private static final String ARG_PARAM1 = "param1";
+    private static HttpServerInteractor http = HttpServerInteractor.getInstance();
     private int tableNumber;
     private List<IDish> originalList = new LinkedList<>();
     private AddDishAdapter adapter;
@@ -193,11 +206,16 @@ public class AddDishFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<List<IDish>> innerDoInBackground(Void[] objects) {
-            final Object input = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "GET MENU");
-            if (input instanceof IMenu) {
-                return new BenderAsyncTaskResult<>(Arrays.asList(((IMenu) input).getDishesArray()));
-            }
-            return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidi)));
+            final JsonArray jsonMenu = http.sendAndReceiveAsJsonArray(ip, 8080, "menu", HttpServerInteractor.Method.GET, null);
+            final List<IDish> menu = stream(jsonMenu)
+                .map(e -> {
+                    final String name = e.getAsJsonObject().get("name").getAsString();
+                    final double price = e.getAsJsonObject().get("price").getAsDouble();
+                    final int filter = e.getAsJsonObject().get("filter").getAsInt();
+                    return new Dish(name, price, filter);
+                })
+                .collect(Collectors.toUnmodifiableList());
+            return new BenderAsyncTaskResult<>(menu);
         }
 
         @Override
@@ -219,13 +237,25 @@ public class AddDishFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(Order[] objects) {
+            final JsonArray jsonNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers?tableNumber=" + objects[0].getTable(), HttpServerInteractor.Method.GET, null);
+            final String name = stream(jsonNames)
+                .filter(e -> !e.getAsJsonObject().get("workingTable").isJsonNull())
+                .map(e -> e.getAsJsonObject().get("name").getAsString())
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidiIngresso)));
             for (final Order order : objects) {
-                Object result = new ServerInteractor().sendCommandAndGetResult(ip, 6789, order);
-                if (result instanceof String) {
-                    if (!result.equals("ORDER ADDED CORRECTLY")) {
-                        return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidiIngresso)));
-                    }
-                }
+                final JsonObject jsonOrder = new JsonObject();
+                final JsonObject jsonDish = new JsonObject();
+                final JsonObject jsonCustomer = new JsonObject();
+                jsonDish.addProperty("name", order.getDish().getName());
+                jsonDish.addProperty("price", order.getDish().getPrice());
+                jsonDish.addProperty("@type", order.getDish().getFilterValue() == 0 ? ".Drink" : ".Food");
+                jsonCustomer.addProperty("name", name);
+                jsonOrder.add("dish", jsonDish);
+                jsonOrder.add("customer", jsonCustomer);
+                jsonOrder.addProperty("amount", 1);
+                jsonOrder.addProperty("served", false);
+                http.sendAndReceiveAsString(ip, 8080, "orders", HttpServerInteractor.Method.POST, jsonOrder.toString());
             }
             return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
@@ -250,17 +280,13 @@ public class AddDishFragment extends Fragment {
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(String[] objects) {
             for (final String name : objects) {
-                Object result;
-                if (name.length() > 0) {
-                    result = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "SET NAME " + tableNumber + " " + name);
-                } else {
-                    result = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "REMOVE NAME " + tableNumber);
-                }
-                if (result instanceof String) {
-                    if (!result.equals("NAME SET CORRECTLY")) {
-                        return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidiIngresso)));
-                    }
-                }
+                final JsonObject jsonTable = new JsonObject();
+                final JsonObject jsonCustomer = new JsonObject();
+                jsonTable.addProperty("tableNumber", tableNumber);
+                jsonCustomer.addProperty("name", name);
+                jsonCustomer.add("workingTable", jsonTable);
+                jsonCustomer.add("table", jsonTable);
+                http.sendAndReceiveAsString(ip, 8080, "customers", HttpServerInteractor.Method.POST, jsonCustomer.toString());
             }
             return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }

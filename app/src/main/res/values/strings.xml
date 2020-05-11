@@ -34,7 +34,9 @@
     <string name="NomeTavolo">Inserisci qui il nuovo nome del tavolo</string>
     <string name="ErroreSocketConChiusura">Errore di comunicazione (la socket è stata chiusa)</string>
     <string name="ErroreSocketSenzaChiusura">Errore di comunicazione (la socket NON è stata chiusa)</string>
+    <string name="ErroreHTTP">Errore di comunicazione HTTP</string>
     <string name="DatiNonValidi">Ricevuti dati non validi</string>
+    <string name="DatiNonValidiBodyVuoto">Ricevuti dati non validi (body HTTP vuoto)</string>
     <string name="DatiNonValidiIngresso">Forniti dati non validi</string>
     <string name="GenericError">Errore Generico</string>
 </resources>

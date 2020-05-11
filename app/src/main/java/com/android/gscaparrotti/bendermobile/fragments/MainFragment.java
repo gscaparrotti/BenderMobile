@@ -15,16 +15,19 @@ import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.android.gscaparrotti.bendermobile.R;
 import com.android.gscaparrotti.bendermobile.activities.MainActivity;
-import com.android.gscaparrotti.bendermobile.network.ServerInteractor;
+import com.android.gscaparrotti.bendermobile.network.HttpServerInteractor;
+import com.android.gscaparrotti.bendermobile.network.HttpServerInteractor.Method;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.android.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
-
+import com.google.gson.JsonArray;
 import java.util.HashMap;
 import java.util.Map;
+import java9.util.stream.Collectors;
+
+import static com.android.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -36,6 +39,7 @@ import java.util.Map;
  */
 public class MainFragment extends Fragment {
 
+    private static HttpServerInteractor http = HttpServerInteractor.getInstance();
     private TableAdapter ta;
     private int tablesCount = 0;
     private Map<Integer, String> names = new HashMap<>();
@@ -188,12 +192,11 @@ public class MainFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(Integer[] objects) {
-            final String command = "RESET TABLE " + objects[0];
-            final Object input = new ServerInteractor().sendCommandAndGetResult(ip, 6789, command);
-            if (input instanceof String && input.equals("TABLE RESET CORRECTLY")) {
-                return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
-            }
-            return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidi)));
+            final JsonArray orders = http.sendAndReceiveAsJsonArray(ip, 8080, "orders?tableNumber=" + objects[0], Method.GET, null);
+            stream(orders)
+                .map(e -> e.getAsJsonObject().get("id").getAsLong())
+                .forEach(id -> http.sendAndReceiveAsString(ip, 8080, "orders/" + id, Method.DELETE, null));
+            return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
 
         @Override
@@ -215,15 +218,17 @@ public class MainFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Pair<Integer, Map<Integer, String>>> innerDoInBackground(Empty[] objects) {
-            final Object receivedAmount = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "GET AMOUNT");
-            final Object receivedNames = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "GET NAMES");
-            if (receivedAmount instanceof Integer && receivedNames instanceof Map) {
-                final Integer amount = (Integer) receivedAmount;
-                @SuppressWarnings("unchecked")
-                final Map<Integer, String> names = (Map<Integer, String>) receivedNames;
-                return new BenderAsyncTaskResult<>(new Pair<>(amount, names));
-            }
-            return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidi)));
+            final JsonArray receivedAmount = http.sendAndReceiveAsJsonArray(ip, 8080, "tables", Method.GET, null);
+            final int amount = stream(receivedAmount)
+                .map(e -> e.getAsJsonObject().get("tableNumber").getAsInt())
+                .max(Integer::compare)
+                .orElse(0);
+            final JsonArray receivedNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers", Method.GET, null);
+            final Map<Integer, String> names = stream(receivedNames)
+                .filter(e -> !e.getAsJsonObject().get("workingTable").isJsonNull())
+                .collect(Collectors.toMap(e -> e.getAsJsonObject().get("workingTable").getAsJsonObject().get("tableNumber").getAsInt(),
+                    e -> e.getAsJsonObject().get("name").getAsString()));
+            return new BenderAsyncTaskResult<>(new Pair<>(amount, names));
         }
 
         @Override

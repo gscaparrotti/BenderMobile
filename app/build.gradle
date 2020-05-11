@@ -2,8 +2,8 @@ apply plugin: 'com.android.application'
 
 android {
     compileOptions {
-        sourceCompatibility 1.8
-        targetCompatibility 1.8
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
     compileSdkVersion 21
     defaultConfig {
@@ -26,13 +26,15 @@ configurations.all {
 }
 
 dependencies {
-    //compile fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:21.0.3'
     implementation 'com.android.support:recyclerview-v7:21.0.3'
     implementation 'com.android.support:support-v4:21.0.3'
     implementation 'me.grantland:autofittextview:0.2.1'
-    implementation 'com.github.gscaparrotti:BenderModel:d3ecf50ee8'
+    implementation 'com.github.gscaparrotti:BenderModel:ef53e0640a'
     implementation 'com.squareup.okhttp3:okhttp:4.6.0'
+    implementation 'com.google.code.gson:gson:2.8.6'
+    implementation 'net.sourceforge.streamsupport:android-retrostreams:1.7.2'
     implementation ('commons-validator:commons-validator:1.6') {
         exclude group: 'commons-logging', module: 'commons-logging'
     }

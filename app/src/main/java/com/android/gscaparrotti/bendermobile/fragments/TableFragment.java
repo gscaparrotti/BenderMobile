@@ -17,32 +17,38 @@ import android.widget.CompoundButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.android.gscaparrotti.bendermobile.R;
 import com.android.gscaparrotti.bendermobile.activities.MainActivity;
-import com.android.gscaparrotti.bendermobile.network.ServerInteractor;
+import com.android.gscaparrotti.bendermobile.network.HttpServerInteractor;
+import com.android.gscaparrotti.bendermobile.network.HttpServerInteractor.Method;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.android.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
-
+import com.github.gscaparrotti.bendermodel.model.Dish;
+import com.github.gscaparrotti.bendermodel.model.IDish;
+import com.github.gscaparrotti.bendermodel.model.Order;
+import com.github.gscaparrotti.bendermodel.model.OrderedDish;
+import com.github.gscaparrotti.bendermodel.model.Pair;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import com.github.gscaparrotti.bendermodel.model.Dish;
-import com.github.gscaparrotti.bendermodel.model.IDish;
-import com.github.gscaparrotti.bendermodel.model.Order;
-import com.github.gscaparrotti.bendermodel.model.OrderedDish;
-import com.github.gscaparrotti.bendermodel.model.Pair;
+import static com.android.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
 
 public class TableFragment extends Fragment {
 
     private static final String TABLE_NUMBER = "TABLENMBR";
+    private static HttpServerInteractor http = HttpServerInteractor.getInstance();
     private int tableNumber;
     private List<Order> list = new LinkedList<>();
     private DishAdapter adapter;
@@ -327,15 +333,25 @@ public class TableFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(Order[] objects) {
-            boolean result = false;
-            final Object resultFromServer = new ServerInteractor().sendCommandAndGetResult(ip, 6789, objects[0]);
-            if (resultFromServer instanceof String) {
-                final String stringResult = (String) resultFromServer;
-                if (stringResult.equals("ORDER UPDATED CORRECTLY")) {
-                    return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
-                }
+            if (objects[0].getAmounts().getX() < 0) {
+                final JsonArray jsonNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers?tableNumber=" + objects[0].getTable(), Method.GET, null);
+                stream(jsonNames)
+                    .filter(e -> !e.getAsJsonObject().get("workingTable").isJsonNull())
+                    .map(e -> e.getAsJsonObject().get("name").getAsString())
+                    .findAny()
+                    .ifPresent(name -> http.sendAndReceiveAsString(ip, 8080, "orders?dishName=" + objects[0].getDish().getName() + "&customerName=" + name, Method.DELETE, null));
+            } else {
+                final JsonArray jsonOrders = http.sendAndReceiveAsJsonArray(ip, 8080, "orders?tableNumber=" + objects[0].getTable(), HttpServerInteractor.Method.GET, null);
+                stream(jsonOrders)
+                    .filter(e -> e.getAsJsonObject().get("dish").getAsJsonObject().get("name").getAsString().equals(objects[0].getDish().getName())
+                        && !e.getAsJsonObject().get("served").getAsBoolean())
+                    .map(e -> {
+                        e.getAsJsonObject().addProperty("served", true);
+                        return e;
+                    })
+                    .forEach(e -> http.sendAndReceiveAsString(ip, 8080, "orders?served=true", Method.POST, e.toString()));
             }
-            return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidi)));
+            return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
 
         @Override
@@ -360,50 +376,58 @@ public class TableFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Pair<List<Order>, String>> innerDoInBackground(final Integer[] objects) {
-            final Object receivedOrders;
-            final Object receivedTableNames;
+            assert objects[0] >= 0;
             final List<Order> outputOrders;
             final String outputName;
             if (objects[0] > 0) {
-                receivedOrders = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "GET TABLE " + objects[0]);
-            } else if (objects[0] == 0) {
-                receivedOrders = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "GET PENDING ORDERS");
+                final JsonArray jsonNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers?tableNumber=" + objects[0], HttpServerInteractor.Method.GET, null);
+                outputName = stream(jsonNames)
+                    .filter(e -> !e.getAsJsonObject().get("workingTable").isJsonNull())
+                    .map(e -> e.getAsJsonObject().get("name").getAsString())
+                    .findAny()
+                    .orElse(null);
             } else {
-                return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidi)));
+                outputName = null;
             }
-            receivedTableNames = new ServerInteractor().sendCommandAndGetResult(ip, 6789, "GET NAMES");
-            if ((receivedOrders instanceof Map || receivedOrders instanceof List) && receivedTableNames instanceof Map) {
-                @SuppressWarnings("unchecked")
-                final Map<Integer, String> tableNames = (Map<Integer, String>) receivedTableNames;
-                outputOrders = new LinkedList<>();
-                if (receivedOrders instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    final Map<IDish, Pair<Integer, Integer>> orders = (Map<IDish, Pair<Integer, Integer>>) receivedOrders;
-                    for (final Map.Entry<IDish, Pair<Integer, Integer>> entry : orders.entrySet()) {
-                        outputOrders.add(new Order(TableFragment.this.tableNumber, entry.getKey(), entry.getValue()));
-                    }
-                    outputName = tableNames.get(objects[0]);
-                } else {
-                    @SuppressWarnings("unchecked")
-                    final List<Order> datas = (List<Order>) receivedOrders;
-                    for (final Order o : datas) {
-                        final StringBuilder strbldr = new StringBuilder(o.getDish().getName());
-                        strbldr.append(" - ").append(o.getTable());
-                        if (tableNames.containsKey(o.getTable())) {
-                            strbldr.append(" (").append(tableNames.get(o.getTable())).append(")");
-                        }
-                        if (o.getDish() instanceof OrderedDish) {
-                            final OrderedDish originalDish = (OrderedDish) o.getDish();
-                            final OrderedDish tempDish = new OrderedDish(strbldr.toString(), o.getDish().getPrice(), originalDish.getFilterValue(), originalDish);
-                            outputOrders.add(new Order(o.getTable(), tempDish, o.getAmounts()));
-                        } else {
-                            outputOrders.add(new Order(o.getTable(), new Dish(strbldr.toString(), o.getDish().getPrice(), o.getDish().getFilterValue()), o.getAmounts()));
-                        }
-                    }
-                    outputName = null;
+            final String ordersEndpoint = objects[0] == 0 ? "orders" : "orders?tableNumber=" + objects[0];
+            final JsonArray jsonOrders = http.sendAndReceiveAsJsonArray(ip, 8080, ordersEndpoint, HttpServerInteractor.Method.GET, null);
+            final List<JsonElement> orders = new ArrayList<>(jsonOrders.size());
+            for (final JsonElement e : jsonOrders) {
+                orders.add(e);
+            }
+            Collections.sort(orders, (first, second) -> {
+                final Date firstTime = new Date(first.getAsJsonObject().get("time").getAsLong());
+                final Date secondTime = new Date(second.getAsJsonObject().get("time").getAsLong());
+                final boolean isFirstServed = first.getAsJsonObject().get("served").getAsBoolean();
+                final boolean isSecondServed = second.getAsJsonObject().get("served").getAsBoolean();
+                if (Boolean.compare(isFirstServed, isSecondServed) != 0) {
+                    return Boolean.compare(isFirstServed, isSecondServed);
                 }
-            } else {
-                return new BenderAsyncTaskResult<>(new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidi)));
+                return firstTime.compareTo(secondTime);
+            });
+            final Map<Pair<Integer, IDish>, Pair<Integer, Integer>> ordersMap = new HashMap<>(orders.size());
+            for (final JsonElement e : orders) {
+                final JsonObject root = e.getAsJsonObject();
+                final JsonObject jsonDish = root.get("dish").getAsJsonObject();
+                final String customerName = root.get("customer").getAsJsonObject().get("name").getAsString();
+                final int workingTable = root.get("customer").getAsJsonObject().get("workingTable").getAsJsonObject().get("tableNumber").getAsInt();
+                final String dishName = objects[0] == 0 ? jsonDish.get("name").getAsString() + " - " + workingTable + " (" + customerName + ")" : jsonDish.get("name").getAsString();
+                final IDish dish = new OrderedDish(dishName, jsonDish.get("price").getAsDouble(), jsonDish.get("filter").getAsInt(),
+                    new Date(root.get("time").getAsLong()));
+                final Pair<Integer, Integer> amounts = new Pair<>(root.get("amount").getAsInt(), root.get("served").getAsBoolean() ? root.get("amount").getAsInt() : 0);
+                final Pair<Integer, IDish> key = new Pair<>(workingTable, dish);
+                if (ordersMap.containsKey(key)) {
+                    final Pair<Integer, Integer> previousAmounts = ordersMap.get(key);
+                    amounts.setX(amounts.getX() + previousAmounts.getX());
+                    amounts.setY(amounts.getY() + previousAmounts.getY());
+                }
+                ordersMap.put(key, amounts);
+            }
+            outputOrders = new ArrayList<>(ordersMap.size());
+            for (final Map.Entry<Pair<Integer, IDish>, Pair<Integer, Integer>> order : ordersMap.entrySet()) {
+                if ((objects[0] == 0 && order.getValue().getX() > order.getValue().getY()) || objects[0] > 0) {
+                    outputOrders.add(new Order(order.getKey().getX(), order.getKey().getY(), order.getValue()));
+                }
             }
             return new BenderAsyncTaskResult<>(new Pair<>(outputOrders, outputName));
         }
@@ -418,7 +442,7 @@ public class TableFragment extends Fragment {
             final List<Order> errorOrder = new ArrayList<>(1);
             errorOrder.add(new Order(TableFragment.this.tableNumber, new Dish(error.getError().getMessage(), 0, 1), new Pair<>(0, 1)));
             stopTasks();
-            commonOnPostExecute(new Pair<List<Order>, String>(errorOrder, null));
+            commonOnPostExecute(new Pair<>(errorOrder, null));
         }
 
         private void commonOnPostExecute(final Pair<List<Order>, String> orders) {
