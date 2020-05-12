@@ -1,10 +1,10 @@
 package com.android.gscaparrotti.bendermobile.fragments;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Pair;
@@ -23,6 +23,7 @@ import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.android.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
 import com.google.gson.JsonArray;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java9.util.stream.Collectors;
@@ -42,6 +43,7 @@ public class MainFragment extends Fragment {
     private static HttpServerInteractor http = HttpServerInteractor.getInstance();
     private TableAdapter ta;
     private int tablesCount = 0;
+    @SuppressLint("UseSparseArrays")
     private Map<Integer, String> names = new HashMap<>();
 
     private OnMainFragmentInteractionListener mListener;
@@ -50,8 +52,7 @@ public class MainFragment extends Fragment {
     }
 
     public static MainFragment newInstance() {
-        MainFragment fragment = new MainFragment();
-        return fragment;
+        return new MainFragment();
     }
 
     @Override
@@ -67,18 +68,8 @@ public class MainFragment extends Fragment {
         ta = new TableAdapter(getActivity());
         gv.setAdapter(ta);
         new TableAmountDownloader(MainFragment.this).execute();
-        view.findViewById(R.id.mainUpdate).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new TableAmountDownloader(MainFragment.this).execute();
-            }
-        });
-        view.findViewById(R.id.allPending).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mListener.onTablePressedEventFired(0);
-            }
-        });
+        view.findViewById(R.id.mainUpdate).setOnClickListener(v -> new TableAmountDownloader(MainFragment.this).execute());
+        view.findViewById(R.id.allPending).setOnClickListener(v -> mListener.onTablePressedEventFired(0));
         return view;
     }
 
@@ -154,27 +145,18 @@ public class MainFragment extends Fragment {
             final TextView tableView = (TextView) convertView.findViewById(R.id.table);
             tableView.setText(getString(R.string.itemTableText) + table + formattedName(names.get(table)));
             convertView.setLongClickable(true);
-            convertView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mListener.onTablePressedEventFired(table);
-                }
-            });
-            convertView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    new AlertDialog.Builder(getActivity())
-                            .setTitle(getString(R.string.ResetConfirmDialogTitle))
-                            .setMessage(R.string.ResetConfirmDialogQuestion)
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int whichButton) {
-                                    new TableResetRequestUploader(MainFragment.this).execute(table);
-                                    new TableAmountDownloader(MainFragment.this).execute();
-                                }})
-                            .setNegativeButton(android.R.string.no, null).show();
-                    return true;
-                }
+            convertView.setOnClickListener(v -> mListener.onTablePressedEventFired(table));
+            convertView.setOnLongClickListener(v -> {
+                new AlertDialog.Builder(getActivity())
+                        .setTitle(getString(R.string.ResetConfirmDialogTitle))
+                        .setMessage(R.string.ResetConfirmDialogQuestion)
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(android.R.string.yes, (dialog, whichButton) -> {
+                            new TableResetRequestUploader(MainFragment.this).execute(table);
+                            new TableAmountDownloader(MainFragment.this).execute();
+                        })
+                        .setNegativeButton(android.R.string.no, null).show();
+                return true;
             });
             return convertView;
         }
@@ -184,6 +166,7 @@ public class MainFragment extends Fragment {
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     private final class TableResetRequestUploader extends FragmentNetworkingBenderAsyncTask<Integer, Empty> {
 
         TableResetRequestUploader(Fragment fragment) {
@@ -210,6 +193,7 @@ public class MainFragment extends Fragment {
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     private final class TableAmountDownloader extends FragmentNetworkingBenderAsyncTask<Empty, Pair<Integer, Map<Integer, String>>> {
 
         TableAmountDownloader(Fragment fragment) {
@@ -233,13 +217,18 @@ public class MainFragment extends Fragment {
 
         @Override
         protected void innerOnSuccessfulPostExecute(BenderAsyncTaskResult<Pair<Integer, Map<Integer, String>>> result) {
-            MainFragment.this.getView().setBackgroundColor(Color.TRANSPARENT);
+            if (MainFragment.this.getView() != null) {
+                MainFragment.this.getView().setBackgroundColor(Color.TRANSPARENT);
+            }
             MainFragment.this.tableAdded(result.getResult().first, result.getResult().second);
         }
 
         @Override
         protected void innerOnUnsuccessfulPostExecute(BenderAsyncTaskResult<Pair<Integer, Map<Integer, String>>> error) {
-            MainFragment.this.getView().setBackgroundColor(Color.rgb(204, 94, 61));
+            if (MainFragment.this.getView() != null) {
+                MainFragment.this.getView().setBackgroundColor(Color.rgb(204, 94, 61));
+            }
+            MainFragment.this.tableAdded(0, Collections.emptyMap());
             Toast.makeText(MainActivity.commonContext, error.getError().getMessage(), Toast.LENGTH_SHORT).show();
         }
     }

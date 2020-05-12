@@ -1,5 +1,6 @@
 package com.android.gscaparrotti.bendermobile.fragments;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
@@ -13,7 +14,6 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,7 +34,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -93,33 +92,22 @@ public class TableFragment extends Fragment {
         adapter = new DishAdapter(getActivity(), list);
         listView.setAdapter(adapter);
         Button update = (Button) view.findViewById(R.id.updateButton);
-        update.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                updateAndStartTasks();
-            }
-        });
+        update.setOnClickListener(v -> updateAndStartTasks());
         Button addDish = (Button) view.findViewById(R.id.addToTable);
-        addDish.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mListener != null) {
-                    mListener.onAddDishEventFired(tableNumber);
-                }
+        addDish.setOnClickListener(v -> {
+            if (mListener != null) {
+                mListener.onAddDishEventFired(tableNumber);
             }
         });
         CheckBox filter = (CheckBox) view.findViewById(R.id.filterCheckBox);
         if (tableNumber == 0) {
             filter.setVisibility(View.VISIBLE);
         }
-        filter.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (TableFragment.this.isVisible() && list != null) {
-                    updateOrders(new ArrayList<>(list));
-                    if (!isChecked) {
-                        new ServerOrdersDownloader(TableFragment.this).execute(tableNumber);
-                    }
+        filter.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (TableFragment.this.isVisible() && list != null) {
+                updateOrders(new ArrayList<>(list));
+                if (!isChecked) {
+                    new ServerOrdersDownloader(TableFragment.this).execute(tableNumber);
                 }
             }
         });
@@ -175,25 +163,17 @@ public class TableFragment extends Fragment {
                 list.addAll(newList);
             }
             if (tableNumber != 0) {
-                Collections.sort(list, new Comparator<Order>() {
-                    @Override
-                    public int compare(Order o1, Order o2) {
-                        return (o2.getAmounts().getX() - o2.getAmounts().getY()) - (o1.getAmounts().getX() - o1.getAmounts().getY());
-                    }
-                });
+                Collections.sort(list, (o1, o2) -> (o2.getAmounts().getX() - o2.getAmounts().getY()) - (o1.getAmounts().getX() - o1.getAmounts().getY()));
             } else {
-                Collections.sort(list, new Comparator<Order>() {
-                    @Override
-                    public int compare(Order o1, Order o2) {
-                        if (o1.getDish() instanceof OrderedDish && o2.getDish() instanceof OrderedDish) {
-                            return (((OrderedDish) o1.getDish()).getTime().compareTo(((OrderedDish) o2.getDish()).getTime()));
-                        } else if (o1.getDish() instanceof OrderedDish && !(o2.getDish() instanceof OrderedDish)) {
-                            return -1;
-                        } else if (o2.getDish() instanceof OrderedDish && !(o1.getDish() instanceof OrderedDish)){
-                            return 1;
-                        } else {
-                            return 0;
-                        }
+                Collections.sort(list, (o1, o2) -> {
+                    if (o1.getDish() instanceof OrderedDish && o2.getDish() instanceof OrderedDish) {
+                        return (((OrderedDish) o1.getDish()).getTime().compareTo(((OrderedDish) o2.getDish()).getTime()));
+                    } else if (o1.getDish() instanceof OrderedDish && !(o2.getDish() instanceof OrderedDish)) {
+                        return -1;
+                    } else if (o2.getDish() instanceof OrderedDish && !(o1.getDish() instanceof OrderedDish)){
+                        return 1;
+                    } else {
+                        return 0;
                     }
                 });
             }
@@ -215,7 +195,7 @@ public class TableFragment extends Fragment {
         if (getView() != null && tableNumber > 0) {
             TextView nameView = (TextView) getView().findViewById(R.id.tableTitle);
             String newName = name.length() > 0 ? (" - " + name) : "";
-            nameView.setText(getString(R.string.tableTitle) + " " + Integer.toString(tableNumber) + newName);
+            nameView.setText(getString(R.string.tableTitle) + " " + tableNumber + newName);
         }
     }
 
@@ -228,12 +208,7 @@ public class TableFragment extends Fragment {
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                        MainActivity.runOnUI(new Runnable() {
-                            @Override
-                            public void run() {
-                                new ServerOrdersDownloader(TableFragment.this).execute(tableNumber);
-                            }
-                        });
+                        MainActivity.runOnUI(() -> new ServerOrdersDownloader(TableFragment.this).execute(tableNumber));
                 }
             }, 0, 6000);
         }
@@ -277,45 +252,36 @@ public class TableFragment extends Fragment {
                 convertView = inflater.inflate(R.layout.item_dish, parent, false);
             }
             final Order order = getItem(position);
-            convertView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    final DishDetailFragment detail = DishDetailFragment.newInstance(order);
-                    detail.show(getFragmentManager(), "Dialog");
-                }
+            convertView.setOnClickListener(v -> {
+                final DishDetailFragment detail = DishDetailFragment.newInstance(order);
+                detail.show(getFragmentManager(), "Dialog");
             });
             convertView.setLongClickable(true);
-            convertView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    order.getAmounts().setY(order.getAmounts().getX());
-                    if (tableNumber == 0) {
-                        final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(" - ")), order.getDish().getPrice(), 0);
-                        final Order newOrder = new Order(order.getTable(), dish, order.getAmounts());
-                        new ServerOrdersUploader(TableFragment.this).execute(newOrder);
-                    } else {
-                        new ServerOrdersUploader(TableFragment.this).execute(order);
-                    }
-                    return true;
+            convertView.setOnLongClickListener(v -> {
+                order.getAmounts().setY(order.getAmounts().getX());
+                if (tableNumber == 0) {
+                    final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(" - ")), order.getDish().getPrice(), 0);
+                    final Order newOrder = new Order(order.getTable(), dish, order.getAmounts());
+                    new ServerOrdersUploader(TableFragment.this).execute(newOrder);
+                } else {
+                    new ServerOrdersUploader(TableFragment.this).execute(order);
                 }
+                return true;
             });
-            convertView.findViewById(R.id.removeButton).setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (tableNumber == 0) {
-                        final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(" - ")), order.getDish().getPrice(), 0);
-                        final Order newOrder = new Order(order.getTable(), dish, new Pair<>(-1, 1));
-                        new ServerOrdersUploader(TableFragment.this).execute(newOrder);
-                    } else {
-                        new ServerOrdersUploader(TableFragment.this).execute(new Order(order.getTable(), order.getDish(), new Pair<>(-1, 1)));
-                    }
+            convertView.findViewById(R.id.removeButton).setOnClickListener(v -> {
+                if (tableNumber == 0) {
+                    final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(" - ")), order.getDish().getPrice(), 0);
+                    final Order newOrder = new Order(order.getTable(), dish, new Pair<>(-1, 1));
+                    new ServerOrdersUploader(TableFragment.this).execute(newOrder);
+                } else {
+                    new ServerOrdersUploader(TableFragment.this).execute(new Order(order.getTable(), order.getDish(), new Pair<>(-1, 1)));
                 }
             });
             ((TextView) convertView.findViewById(R.id.dish)).setText(order.getDish().getName());
             ((TextView) convertView.findViewById(R.id.dishToServe))
-                    .setText(getResources().getString(R.string.StringOrdinati) + Integer.toString(order.getAmounts().getX()));
+                    .setText(getResources().getString(R.string.StringOrdinati) + order.getAmounts().getX());
             ((TextView) convertView.findViewById(R.id.dishServed))
-                    .setText(getResources().getString(R.string.StringDaServire) + Integer.toString(order.getAmounts().getX() - order.getAmounts().getY()));
+                    .setText(getResources().getString(R.string.StringDaServire) + (order.getAmounts().getX() - order.getAmounts().getY()));
             if (!order.getAmounts().getX().equals(order.getAmounts().getY())) {
                 convertView.findViewById(R.id.itemTableLayout).setBackgroundColor(Color.parseColor("#80FF5050"));
             } else {
@@ -325,6 +291,7 @@ public class TableFragment extends Fragment {
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     private class ServerOrdersUploader extends FragmentNetworkingBenderAsyncTask<Order, Empty> {
 
         ServerOrdersUploader(Fragment fragment) {
@@ -368,6 +335,7 @@ public class TableFragment extends Fragment {
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     private class ServerOrdersDownloader extends FragmentNetworkingBenderAsyncTask<Integer, Pair<List<Order>, String>> {
 
         ServerOrdersDownloader(final Fragment fragment) {

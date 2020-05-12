@@ -1,5 +1,6 @@
 package com.android.gscaparrotti.bendermobile.activities;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
@@ -11,9 +12,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.Toolbar;
-
 import com.android.gscaparrotti.bendermobile.R;
 import com.android.gscaparrotti.bendermobile.fragments.AddDishFragment;
 import com.android.gscaparrotti.bendermobile.fragments.MainFragment;
@@ -33,6 +32,7 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
         2) il riferimento, se anche fosse all'Activity, sarebbe comunque a quella corrente
         e non a quelle da buttare via, perchè viene aggiornato nel metodo onCreate
      */
+    @SuppressLint("StaticFieldLeak")
     public static Context commonContext;
     public static Handler UIHandler;
 
@@ -52,23 +52,18 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
         Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
         setActionBar(myToolbar);
         myToolbar.setTitleTextColor(Color.WHITE);
-        if (savedInstanceState == null) {
-            replaceFragment(MainFragment.newInstance(), false);
-        } else {
+        if (savedInstanceState != null) {
             getFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-            replaceFragment(MainFragment.newInstance(), false);
         }
+        replaceFragment(MainFragment.newInstance(), false);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.items, menu);
-        menu.findItem(R.id.settings_menu).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                replaceFragment(new SettingsFragment(), true);
-                return true;
-            }
+        menu.findItem(R.id.settings_menu).setOnMenuItemClickListener(item -> {
+            replaceFragment(new SettingsFragment(), true);
+            return true;
         });
         return true;
     }

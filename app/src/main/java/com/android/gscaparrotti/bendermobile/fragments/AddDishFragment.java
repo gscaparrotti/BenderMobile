@@ -1,5 +1,6 @@
 package com.android.gscaparrotti.bendermobile.fragments;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
@@ -31,6 +32,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java9.util.stream.Collectors;
 
 import static com.android.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
@@ -51,7 +54,6 @@ public class AddDishFragment extends Fragment {
     private int tableNumber;
     private List<IDish> originalList = new LinkedList<>();
     private AddDishAdapter adapter;
-
     private OnAddDishFragmentInteractionListener mListener;
 
     public AddDishFragment() {
@@ -85,29 +87,26 @@ public class AddDishFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_add_dish, container, false);
         ListView listView = (ListView) view.findViewById(R.id.addDishListView);
-        adapter = new AddDishAdapter(getActivity(), new LinkedList<IDish>());
+        adapter = new AddDishAdapter(getActivity(), new LinkedList<>());
         listView.setAdapter(adapter);
         final Button manualOrderButton = (Button) view.findViewById(R.id.buttonAggiungi);
         final EditText price = (EditText) view.findViewById(R.id.editText_prezzo);
         final EditText name = (EditText) view.findViewById(R.id.editText_nome);
-        manualOrderButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try {
-                    String nameString = name.getText().toString();
-                    Double priceDouble = Double.parseDouble(price.getText().toString());
-                    IDish newDish;
-                    if (nameString.endsWith("*")) {
-                        newDish = new OrderedDish(nameString, priceDouble, OrderedDish.Moments.ZERO, 1);
-                    } else {
-                        newDish = new OrderedDish(nameString, priceDouble, OrderedDish.Moments.ZERO, 0);
-                    }
-                    Order newOrder = new Order(tableNumber, newDish, new Pair<>(1, 0));
-                    new ServerDishUploader(AddDishFragment.this).execute(newOrder);
-                } catch (NumberFormatException e) {
-                    if (AddDishFragment.this.getActivity() != null) {
-                        Toast.makeText(AddDishFragment.this.getActivity(), e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
+        manualOrderButton.setOnClickListener(v -> {
+            try {
+                String nameString = name.getText().toString();
+                double priceDouble = Double.parseDouble(price.getText().toString());
+                IDish newDish;
+                if (nameString.endsWith("*")) {
+                    newDish = new OrderedDish(nameString, priceDouble, OrderedDish.Moments.ZERO, 1);
+                } else {
+                    newDish = new OrderedDish(nameString, priceDouble, OrderedDish.Moments.ZERO, 0);
+                }
+                Order newOrder = new Order(tableNumber, newDish, new Pair<>(1, 0));
+                new ServerDishUploader(AddDishFragment.this).execute(newOrder);
+            } catch (NumberFormatException e) {
+                if (AddDishFragment.this.getActivity() != null) {
+                    Toast.makeText(AddDishFragment.this.getActivity(), e.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -130,12 +129,7 @@ public class AddDishFragment extends Fragment {
         });
         final Button newNameButton = (Button) view.findViewById(R.id.tableNameButton);
         final EditText newNameEditText = (EditText) view.findViewById(R.id.tableNameEditText);
-        newNameButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new ServerNameUploader(AddDishFragment.this).execute(newNameEditText.getText().toString());
-            }
-        });
+        newNameButton.setOnClickListener(v -> new ServerNameUploader(AddDishFragment.this).execute(newNameEditText.getText().toString()));
         new ServerMenuDownloader(AddDishFragment.this).execute();
         return view;
     }
@@ -172,8 +166,8 @@ public class AddDishFragment extends Fragment {
 
         private LayoutInflater inflater;
 
-        AddDishAdapter(Context context, List<IDish> persone) {
-            super(context, 0, persone);
+        AddDishAdapter(Context context, List<IDish> dishes) {
+            super(context, 0, dishes);
             inflater = LayoutInflater.from(context);
         }
 
@@ -183,21 +177,19 @@ public class AddDishFragment extends Fragment {
             if (convertView == null) {
                 convertView = inflater.inflate(R.layout.item_dish_to_add, parent, false);
             }
-            final IDish dish = getItem(position);
+            final IDish dish = Objects.requireNonNull(getItem(position));
             ((TextView) convertView.findViewById(R.id.addDishName)).setText(dish.getName());
-            ((TextView) convertView.findViewById(R.id.addDishPrice)).setText(String.format("%.2f", dish.getPrice()));
+            ((TextView) convertView.findViewById(R.id.addDishPrice)).setText(String.format(Locale.ITALIAN, "%.2f", dish.getPrice()));
             final Button button = (Button) convertView.findViewById(R.id.addDishbutton);
-            button.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Order order = new Order(tableNumber, new OrderedDish(dish, OrderedDish.Moments.ZERO), new Pair<>(1, 0));
-                    new ServerDishUploader(AddDishFragment.this).execute(order);
-                }
+            button.setOnClickListener(v -> {
+                Order order = new Order(tableNumber, new OrderedDish(dish, OrderedDish.Moments.ZERO), new Pair<>(1, 0));
+                new ServerDishUploader(AddDishFragment.this).execute(order);
             });
             return convertView;
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     private class ServerMenuDownloader extends FragmentNetworkingBenderAsyncTask<Void, List<IDish>> {
 
         ServerMenuDownloader(Fragment fragment) {
@@ -229,6 +221,7 @@ public class AddDishFragment extends Fragment {
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     private class ServerDishUploader extends FragmentNetworkingBenderAsyncTask<Order, Empty> {
 
         ServerDishUploader(Fragment fragment) {
@@ -271,6 +264,7 @@ public class AddDishFragment extends Fragment {
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     private class ServerNameUploader extends FragmentNetworkingBenderAsyncTask<String, Empty> {
 
         ServerNameUploader(Fragment fragment) {
