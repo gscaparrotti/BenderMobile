@@ -30,6 +30,7 @@ import com.github.gscaparrotti.bendermodel.model.OrderedDish;
 import com.github.gscaparrotti.bendermodel.model.Pair;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import java9.util.Comparators;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -206,6 +207,7 @@ public class AddDishFragment extends Fragment {
                     final int filter = e.getAsJsonObject().get("filter").getAsInt();
                     return new Dish(name, price, filter);
                 })
+                .sorted(Comparators.comparing(Dish::getName))
                 .collect(Collectors.toUnmodifiableList());
             return new BenderAsyncTaskResult<>(menu);
         }

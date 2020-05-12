@@ -143,7 +143,7 @@ public class MainFragment extends Fragment {
             }
             final Integer table = getItem(position);
             final TextView tableView = (TextView) convertView.findViewById(R.id.table);
-            tableView.setText(getString(R.string.itemTableText) + table + formattedName(names.get(table)));
+            tableView.setText(getString(R.string.itemTableText) + table + formattedName(names.get(table), table));
             convertView.setLongClickable(true);
             convertView.setOnClickListener(v -> mListener.onTablePressedEventFired(table));
             convertView.setOnLongClickListener(v -> {
@@ -161,8 +161,8 @@ public class MainFragment extends Fragment {
             return convertView;
         }
 
-        private String formattedName(final String name) {
-            return !(name == null) ? " - " + name : "";
+        private String formattedName(final String name, final int tableNumber) {
+            return !(name == null || name.equals("customer" + tableNumber)) ? " - " + name : "";
         }
     }
 

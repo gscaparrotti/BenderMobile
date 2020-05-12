@@ -192,7 +192,7 @@ public class TableFragment extends Fragment {
     }
 
     private void updateName(final String name) {
-        if (getView() != null && tableNumber > 0) {
+        if (getView() != null && tableNumber > 0 && !name.equals("customer" + tableNumber)) {
             TextView nameView = (TextView) getView().findViewById(R.id.tableTitle);
             String newName = name.length() > 0 ? (" - " + name) : "";
             nameView.setText(getString(R.string.tableTitle) + " " + tableNumber + newName);
