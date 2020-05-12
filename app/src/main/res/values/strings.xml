@@ -39,4 +39,5 @@
     <string name="DatiNonValidiBodyVuoto">Ricevuti dati non validi (body HTTP vuoto)</string>
     <string name="DatiNonValidiIngresso">Forniti dati non validi</string>
     <string name="GenericError">Errore Generico</string>
+    <string name="Wait">Attendere…</string>
 </resources>
