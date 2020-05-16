@@ -1,4 +1,4 @@
-package com.android.gscaparrotti.bendermobile.utilities;
+package com.github.gscaparrotti.bendermobile.utilities;
 
 import java9.util.Spliterators;
 import java9.util.stream.Stream;

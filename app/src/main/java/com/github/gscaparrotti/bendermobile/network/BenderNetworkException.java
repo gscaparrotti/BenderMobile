@@ -1,4 +1,4 @@
-package com.android.gscaparrotti.bendermobile.network;
+package com.github.gscaparrotti.bendermobile.network;
 
 /**
  * Created by gscap_000 on 30/03/2018.

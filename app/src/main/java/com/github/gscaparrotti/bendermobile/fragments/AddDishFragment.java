@@ -1,4 +1,4 @@
-package com.android.gscaparrotti.bendermobile.fragments;
+package com.github.gscaparrotti.bendermobile.fragments;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -17,12 +17,12 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.android.gscaparrotti.bendermobile.R;
-import com.android.gscaparrotti.bendermobile.activities.MainActivity;
-import com.android.gscaparrotti.bendermobile.network.HttpServerInteractor;
-import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
-import com.android.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
-import com.android.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
+import com.github.gscaparrotti.bendermobile.R;
+import com.github.gscaparrotti.bendermobile.activities.MainActivity;
+import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor;
+import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
+import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
+import com.github.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
 import com.github.gscaparrotti.bendermodel.model.Dish;
 import com.github.gscaparrotti.bendermodel.model.IDish;
 import com.github.gscaparrotti.bendermodel.model.Order;
@@ -37,7 +37,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java9.util.stream.Collectors;
 
-import static com.android.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
+import static com.github.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
 
 
 /**

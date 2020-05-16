@@ -1,4 +1,4 @@
-package com.android.gscaparrotti.bendermobile.activities;
+package com.github.gscaparrotti.bendermobile.activities;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -13,11 +13,11 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.widget.Toolbar;
-import com.android.gscaparrotti.bendermobile.R;
-import com.android.gscaparrotti.bendermobile.fragments.AddDishFragment;
-import com.android.gscaparrotti.bendermobile.fragments.MainFragment;
-import com.android.gscaparrotti.bendermobile.fragments.SettingsFragment;
-import com.android.gscaparrotti.bendermobile.fragments.TableFragment;
+import com.github.gscaparrotti.bendermobile.R;
+import com.github.gscaparrotti.bendermobile.fragments.AddDishFragment;
+import com.github.gscaparrotti.bendermobile.fragments.MainFragment;
+import com.github.gscaparrotti.bendermobile.fragments.SettingsFragment;
+import com.github.gscaparrotti.bendermobile.fragments.TableFragment;
 
 public class MainActivity extends Activity implements TableFragment.OnTableFragmentInteractionListener, MainFragment.OnMainFragmentInteractionListener, AddDishFragment.OnAddDishFragmentInteractionListener {
 

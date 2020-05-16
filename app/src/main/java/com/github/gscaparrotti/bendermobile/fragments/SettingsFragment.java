@@ -1,4 +1,4 @@
-package com.android.gscaparrotti.bendermobile.fragments;
+package com.github.gscaparrotti.bendermobile.fragments;
 
 import android.app.Fragment;
 import android.content.SharedPreferences;
@@ -10,8 +10,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.gscaparrotti.bendermobile.R;
-import com.android.gscaparrotti.bendermobile.activities.MainActivity;
+import com.github.gscaparrotti.bendermobile.R;
+import com.github.gscaparrotti.bendermobile.activities.MainActivity;
 
 public class SettingsFragment extends Fragment {
 

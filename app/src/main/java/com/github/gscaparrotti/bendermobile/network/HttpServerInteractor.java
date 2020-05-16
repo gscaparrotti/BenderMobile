@@ -1,7 +1,7 @@
-package com.android.gscaparrotti.bendermobile.network;
+package com.github.gscaparrotti.bendermobile.network;
 
-import com.android.gscaparrotti.bendermobile.R;
-import com.android.gscaparrotti.bendermobile.activities.MainActivity;
+import com.github.gscaparrotti.bendermobile.R;
+import com.github.gscaparrotti.bendermobile.activities.MainActivity;
 import com.github.gscaparrotti.bendermodel.model.Pair;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;

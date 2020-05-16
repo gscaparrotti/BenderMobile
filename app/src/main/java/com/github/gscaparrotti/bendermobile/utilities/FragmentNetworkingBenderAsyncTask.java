@@ -1,10 +1,10 @@
-package com.android.gscaparrotti.bendermobile.utilities;
+package com.github.gscaparrotti.bendermobile.utilities;
 
 import android.annotation.SuppressLint;
 import android.app.Fragment;
 import android.app.ProgressDialog;
-import com.android.gscaparrotti.bendermobile.R;
-import com.android.gscaparrotti.bendermobile.activities.MainActivity;
+import com.github.gscaparrotti.bendermobile.R;
+import com.github.gscaparrotti.bendermobile.activities.MainActivity;
 
 public abstract class FragmentNetworkingBenderAsyncTask<INPUT, OUTPUT> extends BenderAsyncTask<INPUT, OUTPUT> {
 

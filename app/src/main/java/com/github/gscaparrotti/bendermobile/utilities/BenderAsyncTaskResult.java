@@ -1,4 +1,4 @@
-package com.android.gscaparrotti.bendermobile.utilities;
+package com.github.gscaparrotti.bendermobile.utilities;
 
 public class BenderAsyncTaskResult<A> {
 

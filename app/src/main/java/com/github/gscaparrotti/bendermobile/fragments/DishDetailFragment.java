@@ -1,4 +1,4 @@
-package com.android.gscaparrotti.bendermobile.fragments;
+package com.github.gscaparrotti.bendermobile.fragments;
 
 import android.content.res.Resources;
 import android.os.Bundle;
@@ -8,7 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.android.gscaparrotti.bendermobile.R;
+import com.github.gscaparrotti.bendermobile.R;
 
 import com.github.gscaparrotti.bendermodel.model.Order;
 

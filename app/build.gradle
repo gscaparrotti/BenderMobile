@@ -5,12 +5,13 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    compileSdkVersion 21
+    compileSdkVersion 28
     defaultConfig {
-        applicationId "com.android.gscaparrotti.bendermobile"
+        targetSdkVersion 28
+        applicationId "com.github.gscaparrotti.bendermobile"
         minSdkVersion 21
         versionCode 1
-        versionName "1.0"
+        versionName "0.5.0-beta.1"
     }
     buildTypes {
         release {
@@ -27,9 +28,9 @@ configurations.all {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:appcompat-v7:21.0.3'
-    implementation 'com.android.support:recyclerview-v7:21.0.3'
-    implementation 'com.android.support:support-v4:21.0.3'
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.android.support:recyclerview-v7:28.0.0'
+    implementation 'com.android.support:support-v4:28.0.0'
     implementation 'me.grantland:autofittextview:0.2.1'
     implementation 'com.github.gscaparrotti:BenderModel:ef53e0640a'
     implementation 'com.squareup.okhttp3:okhttp:4.6.0'

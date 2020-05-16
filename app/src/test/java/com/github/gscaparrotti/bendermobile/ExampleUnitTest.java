@@ -1,4 +1,4 @@
-package com.android.gscaparrotti.bendermobile;
+package com.github.gscaparrotti.bendermobile;
 
 import org.junit.Test;
 
