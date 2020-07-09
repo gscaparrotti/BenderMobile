@@ -378,18 +378,20 @@ public class TableFragment extends Fragment {
                 final JsonObject root = e.getAsJsonObject();
                 final JsonObject jsonDish = root.get("dish").getAsJsonObject();
                 final String customerName = root.get("customer").getAsJsonObject().get("name").getAsString();
-                final int workingTable = root.get("customer").getAsJsonObject().get("workingTable").getAsJsonObject().get("tableNumber").getAsInt();
-                final String dishName = objects[0] == 0 ? jsonDish.get("name").getAsString() + " - " + workingTable + " (" + customerName + ")" : jsonDish.get("name").getAsString();
-                final IDish dish = new OrderedDish(dishName, jsonDish.get("price").getAsDouble(), jsonDish.get("filter").getAsInt(),
-                    new Date(root.get("time").getAsLong()));
-                final Pair<Integer, Integer> amounts = new Pair<>(root.get("amount").getAsInt(), root.get("served").getAsBoolean() ? root.get("amount").getAsInt() : 0);
-                final Pair<Integer, IDish> key = new Pair<>(workingTable, dish);
-                if (ordersMap.containsKey(key)) {
-                    final Pair<Integer, Integer> previousAmounts = ordersMap.get(key);
-                    amounts.setX(amounts.getX() + previousAmounts.getX());
-                    amounts.setY(amounts.getY() + previousAmounts.getY());
+                if (!root.get("customer").getAsJsonObject().get("workingTable").isJsonNull()) {
+                    final int workingTable = root.get("customer").getAsJsonObject().get("workingTable").getAsJsonObject().get("tableNumber").getAsInt();
+                    final String dishName = objects[0] == 0 ? jsonDish.get("name").getAsString() + " - " + workingTable + " (" + customerName + ")" : jsonDish.get("name").getAsString();
+                    final IDish dish = new OrderedDish(dishName, jsonDish.get("price").getAsDouble(), jsonDish.get("filter").getAsInt(),
+                        new Date(root.get("time").getAsLong()));
+                    final Pair<Integer, Integer> amounts = new Pair<>(root.get("amount").getAsInt(), root.get("served").getAsBoolean() ? root.get("amount").getAsInt() : 0);
+                    final Pair<Integer, IDish> key = new Pair<>(workingTable, dish);
+                    if (ordersMap.containsKey(key)) {
+                        final Pair<Integer, Integer> previousAmounts = ordersMap.get(key);
+                        amounts.setX(amounts.getX() + previousAmounts.getX());
+                        amounts.setY(amounts.getY() + previousAmounts.getY());
+                    }
+                    ordersMap.put(key, amounts);
                 }
-                ordersMap.put(key, amounts);
             }
             outputOrders = new ArrayList<>(ordersMap.size());
             for (final Map.Entry<Pair<Integer, IDish>, Pair<Integer, Integer>> order : ordersMap.entrySet()) {
