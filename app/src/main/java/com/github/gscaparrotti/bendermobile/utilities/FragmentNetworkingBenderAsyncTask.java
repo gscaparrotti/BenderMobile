@@ -15,16 +15,16 @@ public abstract class FragmentNetworkingBenderAsyncTask<INPUT, OUTPUT> extends B
 
     public FragmentNetworkingBenderAsyncTask(final Fragment fragment) {
         this.fragment = fragment;
-        waitDialog = new ProgressDialog(fragment.getActivity());
-        waitDialog.setMessage(MainActivity.commonContext.getString(R.string.Wait));
-        waitDialog.setIndeterminate(true);
-        waitDialog.setCancelable(true);
     }
 
     @Override
     protected final void onPreExecute() {
         super.onPreExecute();
         if (fragment.isAdded()) {
+            waitDialog = new ProgressDialog(fragment.getActivity());
+            waitDialog.setMessage(MainActivity.commonContext.getString(R.string.Wait));
+            waitDialog.setIndeterminate(true);
+            waitDialog.setCancelable(true);
             waitDialog.show();
             this.ip = fragment.getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent");
             innerOnPreExecute();

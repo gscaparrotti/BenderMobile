@@ -31,7 +31,7 @@
     <string name="PrezzoPiatto">Prezzo Piatto</string>
     <string name="PrezzoTotale">"Conto Totale: "</string>
     <string name="valute">€</string>
-    <string name="NomeTavolo">Inserisci qui il nuovo nome del tavolo</string>
+    <string name="NomeTavolo">Nuovo nome</string>
     <string name="ErroreSocketConChiusura">Errore di comunicazione (la socket è stata chiusa)</string>
     <string name="ErroreSocketSenzaChiusura">Errore di comunicazione (la socket NON è stata chiusa)</string>
     <string name="ErroreHTTP">Errore di comunicazione HTTP</string>

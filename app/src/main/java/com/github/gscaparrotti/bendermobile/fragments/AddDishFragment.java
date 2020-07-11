@@ -11,10 +11,12 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.github.gscaparrotti.bendermobile.R;
@@ -30,11 +32,11 @@ import com.github.gscaparrotti.bendermodel.model.OrderedDish;
 import com.github.gscaparrotti.bendermodel.model.Pair;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import java9.util.Comparators;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java9.util.Comparators;
 import java9.util.stream.Collectors;
 
 import static com.github.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
@@ -54,7 +56,8 @@ public class AddDishFragment extends Fragment {
     private static HttpServerInteractor http = HttpServerInteractor.getInstance();
     private int tableNumber;
     private List<IDish> originalList = new LinkedList<>();
-    private AddDishAdapter adapter;
+    private AddDishAdapter addDishAdapter;
+    private ArrayAdapter<String> namesAdapter;
     private OnAddDishFragmentInteractionListener mListener;
 
     public AddDishFragment() {
@@ -88,8 +91,8 @@ public class AddDishFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_add_dish, container, false);
         ListView listView = (ListView) view.findViewById(R.id.addDishListView);
-        adapter = new AddDishAdapter(getActivity(), new LinkedList<>());
-        listView.setAdapter(adapter);
+        addDishAdapter = new AddDishAdapter(getActivity(), new LinkedList<>());
+        listView.setAdapter(addDishAdapter);
         final Button manualOrderButton = (Button) view.findViewById(R.id.buttonAggiungi);
         final EditText price = (EditText) view.findViewById(R.id.editText_prezzo);
         final EditText name = (EditText) view.findViewById(R.id.editText_nome);
@@ -120,18 +123,34 @@ public class AddDishFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-                adapter.clear();
+                addDishAdapter.clear();
                 for (final IDish dish : originalList) {
                     if (dish.getName().toLowerCase().contains(s.toString().toLowerCase())) {
-                        adapter.add(dish);
+                        addDishAdapter.add(dish);
                     }
                 }
             }
         });
         final Button newNameButton = (Button) view.findViewById(R.id.tableNameButton);
         final EditText newNameEditText = (EditText) view.findViewById(R.id.tableNameEditText);
+        Spinner namesSpinner = view.findViewById(R.id.nameSpinner);
+        namesAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item);
+        namesAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        namesSpinner.setAdapter(namesAdapter);
+        namesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int pos, long id) {
+                newNameEditText.setText(namesAdapter.getItem(pos));
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                newNameEditText.setText("");
+            }
+        });
         newNameButton.setOnClickListener(v -> new ServerNameUploader(AddDishFragment.this).execute(newNameEditText.getText().toString()));
         new ServerMenuDownloader(AddDishFragment.this).execute();
+        new ServerNamesDownloader(AddDishFragment.this).execute(tableNumber);
         return view;
     }
 
@@ -152,13 +171,18 @@ public class AddDishFragment extends Fragment {
         mListener = null;
     }
 
-    private void update(final List<IDish> newList) {
+    private void updateMenu(final List<IDish> newList) {
         if (originalList != null) {
             originalList.clear();
             originalList.addAll(newList);
         }
-        adapter.clear();
-        adapter.addAll(newList);
+        addDishAdapter.clear();
+        addDishAdapter.addAll(newList);
+    }
+
+    private void updateNames(final List<String> names) {
+        namesAdapter.clear();
+        namesAdapter.addAll(names);
     }
 
     public interface OnAddDishFragmentInteractionListener { }
@@ -214,7 +238,7 @@ public class AddDishFragment extends Fragment {
 
         @Override
         protected void innerOnSuccessfulPostExecute(BenderAsyncTaskResult<List<IDish>> result) {
-            AddDishFragment.this.update(result.getResult());
+            AddDishFragment.this.updateMenu(result.getResult());
         }
 
         @Override
@@ -262,6 +286,35 @@ public class AddDishFragment extends Fragment {
 
         @Override
         protected void innerOnUnsuccessfulPostExecute(BenderAsyncTaskResult<Empty> error) {
+            Toast.makeText(MainActivity.commonContext, error.getError().getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    private class ServerNamesDownloader extends FragmentNetworkingBenderAsyncTask<Integer, List<String>> {
+
+        public ServerNamesDownloader(Fragment fragment) {
+            super(fragment);
+        }
+
+        @Override
+        protected BenderAsyncTaskResult<List<String>> innerDoInBackground(Integer[] objects) {
+            final JsonArray receivedNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers", HttpServerInteractor.Method.GET, null);
+            final List<String> names = stream(receivedNames)
+                .filter(e -> e.getAsJsonObject().get("table").getAsJsonObject().get("tableNumber").getAsInt() == objects[0])
+                .map(e -> e.getAsJsonObject().get("name").getAsString())
+                .sorted()
+                .collect(Collectors.toUnmodifiableList());
+            return new BenderAsyncTaskResult<>(names);
+        }
+
+        @Override
+        protected void innerOnSuccessfulPostExecute(BenderAsyncTaskResult<List<String>> result) {
+            AddDishFragment.this.updateNames(result.getResult());
+        }
+
+        @Override
+        protected void innerOnUnsuccessfulPostExecute(BenderAsyncTaskResult<List<String>> error) {
             Toast.makeText(MainActivity.commonContext, error.getError().getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
