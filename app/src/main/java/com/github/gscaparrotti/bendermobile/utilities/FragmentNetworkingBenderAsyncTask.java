@@ -1,17 +1,18 @@
 package com.github.gscaparrotti.bendermobile.utilities;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.Fragment;
-import android.app.ProgressDialog;
 import com.github.gscaparrotti.bendermobile.R;
 import com.github.gscaparrotti.bendermobile.activities.MainActivity;
+import dmax.dialog.SpotsDialog;
 
 public abstract class FragmentNetworkingBenderAsyncTask<INPUT, OUTPUT> extends BenderAsyncTask<INPUT, OUTPUT> {
 
     protected String ip;
     @SuppressLint("StaticFieldLeak")
     private final Fragment fragment;
-    private ProgressDialog waitDialog;
+    private AlertDialog waitDialog;
 
     public FragmentNetworkingBenderAsyncTask(final Fragment fragment) {
         this.fragment = fragment;
@@ -21,10 +22,10 @@ public abstract class FragmentNetworkingBenderAsyncTask<INPUT, OUTPUT> extends B
     protected final void onPreExecute() {
         super.onPreExecute();
         if (fragment.isAdded()) {
-            waitDialog = new ProgressDialog(fragment.getActivity());
+            waitDialog = new SpotsDialog.Builder().setContext(fragment.getActivity()).build();
             waitDialog.setMessage(MainActivity.commonContext.getString(R.string.Wait));
-            waitDialog.setIndeterminate(true);
             waitDialog.setCancelable(true);
+            waitDialog.setCanceledOnTouchOutside(true);
             waitDialog.show();
             this.ip = fragment.getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent");
             innerOnPreExecute();
