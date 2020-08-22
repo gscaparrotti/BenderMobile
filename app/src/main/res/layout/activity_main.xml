@@ -11,6 +11,20 @@
         android:background="?attr/colorPrimary"
         android:elevation="4dp"
         android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
-        android:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
+        android:popupTheme="@style/ThemeOverlay.AppCompat.Light">
+
+        <TextView
+                android:visibility="invisible"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="20dp"
+                android:layout_marginLeft="20dp"
+                android:text="@string/loading"
+                android:layout_gravity="end"
+                android:id="@+id/loading_message"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"/>
+
+    </android.widget.Toolbar>
 
 </RelativeLayout>

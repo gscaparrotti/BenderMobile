@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
+import android.view.View;
 import android.widget.Toolbar;
 import com.github.gscaparrotti.bendermobile.R;
 import com.github.gscaparrotti.bendermobile.fragments.AddDishFragment;
@@ -76,6 +77,7 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
 
     @Override
     public void onBackPressed() {
+        toggleLoadingLabel(false);
         if (getFragmentManager().getBackStackEntryCount() > 0)
             getFragmentManager().popBackStack();
         else
@@ -84,6 +86,7 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
     }
 
     private void replaceFragment(Fragment fragment, boolean back) {
+        toggleLoadingLabel(false);
         FragmentManager manager = getFragmentManager();
         FragmentTransaction transaction = manager.beginTransaction();
         transaction.replace(R.id.container, fragment);
@@ -103,5 +106,8 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
         replaceFragment(AddDishFragment.newInstance(tableNumber), true);
     }
 
+    public void toggleLoadingLabel(final boolean visible) {
+        findViewById(R.id.loading_message).setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+    }
 
 }

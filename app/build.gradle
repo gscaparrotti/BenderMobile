@@ -10,8 +10,8 @@ android {
         targetSdkVersion 28
         applicationId "com.github.gscaparrotti.bendermobile"
         minSdkVersion 21
-        versionCode 4
-        versionName "0.5.0-beta.4"
+        versionCode 7
+        versionName "0.5.0-beta.7"
     }
     buildTypes {
         release {
@@ -31,10 +31,9 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:28.0.0'
     implementation 'me.grantland:autofittextview:0.2.1'
     implementation 'com.github.gscaparrotti:BenderModel:ef53e0640a'
-    implementation 'com.squareup.okhttp3:okhttp:4.6.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.8.0'
     implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'net.sourceforge.streamsupport:android-retrostreams:1.7.2'
-    implementation 'com.github.d-max:spots-dialog:1.1@aar'
     implementation ('commons-validator:commons-validator:1.6') {
         exclude group: 'commons-logging', module: 'commons-logging'
     }
