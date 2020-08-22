@@ -7,6 +7,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import okhttp3.MediaType;
@@ -34,8 +37,16 @@ public class HttpServerInteractor {
 
     @SafeVarargs
     public final String sendAndReceiveAsString(final String address, final int port, final String endpoint, final Method method, final String body, final Pair<String, String>... params) {
-        final Request.Builder requestBuilder = new Request.Builder()
-            .url("http://"+ address + ":" + port + "/api/" + endpoint);
+        String url = null;
+        try {
+            final String[] splitEndpoint = endpoint.split("\\?", 2);
+            final URI uri = new URI("http",  null, address, port, "/api/" + splitEndpoint[0], splitEndpoint.length > 1 ? splitEndpoint[1] : null, null);
+            url = uri.toURL().toString();
+        } catch (final URISyntaxException | MalformedURLException e) {
+            //fallback
+            url = "http://"+ address + ":" + port + "/api/" + endpoint;
+        }
+        final Request.Builder requestBuilder = new Request.Builder().url(url);
         for (final Pair<String, String> param : params) {
             requestBuilder.header(param.getX(), param.getY());
         }
@@ -56,19 +67,21 @@ public class HttpServerInteractor {
         }
         try (final Response response = okHttpClient.newCall(requestBuilder.build()).execute()) {
             if (!response.isSuccessful()) {
-                throw new BenderNetworkException(MainActivity.commonContext.getString(R.string.ErroreHTTP) + ": " + response.code());
+                throw new BenderNetworkException(MainActivity.commonContext.getString(R.string.ErroreHTTP) + ": " + response.code() + " " + response.message());
             }
             return response.body() != null ? Objects.requireNonNull(response.body()).string() : "";
         } catch (final IOException e) {
-            throw new BenderNetworkException(MainActivity.commonContext.getString(R.string.ErroreHTTP));
+            throw new BenderNetworkException(MainActivity.commonContext.getString(R.string.ErroreHTTP) +": " + e.getMessage());
         }
     }
 
+    @SuppressWarnings("unused")
     @SafeVarargs
     public final JsonArray sendAndReceiveAsJsonArray(final String address, final int port, final String endpoint, final Method method, final String body, final Pair<String, String>... params) {
         return new Gson().fromJson(sendAndReceiveAsString(address, port, endpoint, method, body, params), JsonArray.class);
     }
 
+    @SuppressWarnings("unused")
     @SafeVarargs
     public final JsonObject sendAndReceiveAsJsonObject(final String address, final int port, final String endpoint, final Method method, final String body, final Pair<String, String>... params) {
         return new Gson().fromJson(sendAndReceiveAsString(address, port, endpoint, method, body, params), JsonObject.class);
