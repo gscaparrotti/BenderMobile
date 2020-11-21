@@ -87,6 +87,11 @@ public class HttpServerInteractor {
         return new Gson().fromJson(sendAndReceiveAsString(address, port, endpoint, method, body, params), JsonObject.class);
     }
 
+    @SafeVarargs
+    public final <T> T sendAndReceive(final Class<T> clazz, final String address, final int port, final String endpoint, final Method method, final String body, final Pair<String, String>... params) {
+        return new Gson().fromJson(sendAndReceiveAsString(address, port, endpoint, method, body, params), clazz);
+    }
+
     public enum Method {
         GET, POST, DELETE
     }

@@ -19,6 +19,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.github.gscaparrotti.bendermobile.R;
 import com.github.gscaparrotti.bendermobile.activities.MainActivity;
+import com.github.gscaparrotti.bendermobile.dto.CustomerDto;
+import com.github.gscaparrotti.bendermobile.dto.DishDto;
+import com.github.gscaparrotti.bendermobile.dto.OrderDto;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor.Method;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
@@ -30,9 +33,8 @@ import com.github.gscaparrotti.bendermodel.model.Order;
 import com.github.gscaparrotti.bendermodel.model.OrderedDish;
 import com.github.gscaparrotti.bendermodel.model.Pair;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -41,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Collectors;
 
 import static com.github.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
 
@@ -345,60 +348,50 @@ public class TableFragment extends Fragment {
         @Override
         protected BenderAsyncTaskResult<Pair<List<Order>, String>> innerDoInBackground(final Integer[] objects) {
             assert objects[0] >= 0;
-            final List<Order> outputOrders;
             final String outputName;
             if (objects[0] > 0) {
-                final JsonArray jsonNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers?tableNumber=" + objects[0], HttpServerInteractor.Method.GET, null);
-                outputName = stream(jsonNames)
-                    .filter(e -> !e.getAsJsonObject().get("workingTable").isJsonNull())
-                    .map(e -> e.getAsJsonObject().get("name").getAsString())
+                final CustomerDto[] customersArray = http.sendAndReceive(CustomerDto[].class, ip, 8080, "customers?tableNumber=" + objects[0], HttpServerInteractor.Method.GET, null);
+                final List<CustomerDto> customers = Arrays.asList(customersArray);
+                outputName = stream(customers)
+                    .filter(c -> c.getWorkingTable() != null)
+                    .map(CustomerDto::getName)
                     .findAny()
                     .orElse(null);
             } else {
                 outputName = null;
             }
             final String ordersEndpoint = objects[0] == 0 ? "orders" : "orders?tableNumber=" + objects[0];
-            final JsonArray jsonOrders = http.sendAndReceiveAsJsonArray(ip, 8080, ordersEndpoint, HttpServerInteractor.Method.GET, null);
-            final List<JsonElement> orders = new ArrayList<>(jsonOrders.size());
-            for (final JsonElement e : jsonOrders) {
-                orders.add(e);
-            }
-            Collections.sort(orders, (first, second) -> {
-                final Date firstTime = new Date(first.getAsJsonObject().get("time").getAsLong());
-                final Date secondTime = new Date(second.getAsJsonObject().get("time").getAsLong());
-                final boolean isFirstServed = first.getAsJsonObject().get("served").getAsBoolean();
-                final boolean isSecondServed = second.getAsJsonObject().get("served").getAsBoolean();
-                if (Boolean.compare(isFirstServed, isSecondServed) != 0) {
-                    return Boolean.compare(isFirstServed, isSecondServed);
+            final OrderDto[] ordersArray = http.sendAndReceive(OrderDto[].class, ip, 8080, ordersEndpoint, HttpServerInteractor.Method.GET, null);
+            final List<OrderDto> ordersDto = Arrays.asList(ordersArray);
+            Collections.sort(ordersDto, (first, second) -> {
+                if (Boolean.compare(first.isServed(), second.isServed()) != 0) {
+                    return Boolean.compare(first.isServed(), second.isServed());
                 }
-                return firstTime.compareTo(secondTime);
+                return new Date(first.getTime()).compareTo(new Date(second.getTime()));
             });
-            final Map<Pair<Integer, IDish>, Pair<Integer, Integer>> ordersMap = new HashMap<>(orders.size());
-            for (final JsonElement e : orders) {
-                final JsonObject root = e.getAsJsonObject();
-                final JsonObject jsonDish = root.get("dish").getAsJsonObject();
-                final String customerName = root.get("customer").getAsJsonObject().get("name").getAsString();
-                if (!root.get("customer").getAsJsonObject().get("workingTable").isJsonNull()) {
-                    final int workingTable = root.get("customer").getAsJsonObject().get("workingTable").getAsJsonObject().get("tableNumber").getAsInt();
-                    final String dishName = objects[0] == 0 ? jsonDish.get("name").getAsString() + " - " + workingTable + " (" + customerName + ")" : jsonDish.get("name").getAsString();
-                    final IDish dish = new OrderedDish(dishName, jsonDish.get("price").getAsDouble(), jsonDish.get("filter").getAsInt(),
-                        new Date(root.get("time").getAsLong()));
-                    final Pair<Integer, Integer> amounts = new Pair<>(root.get("amount").getAsInt(), root.get("served").getAsBoolean() ? root.get("amount").getAsInt() : 0);
-                    final Pair<Integer, IDish> key = new Pair<>(workingTable, dish);
-                    if (ordersMap.containsKey(key)) {
-                        final Pair<Integer, Integer> previousAmounts = ordersMap.get(key);
-                        amounts.setX(amounts.getX() + previousAmounts.getX());
-                        amounts.setY(amounts.getY() + previousAmounts.getY());
-                    }
-                    ordersMap.put(key, amounts);
+            final Map<Integer, Map<IDish, Order>> tablesDishesMap = new HashMap<>();
+            for (final OrderDto orderDto : ordersDto) {
+                if (orderDto.getCustomer().getWorkingTable() != null) {
+                    final DishDto dishDto = orderDto.getDish();
+                    final String customerName = orderDto.getCustomer().getName();
+                    final int tableNumber = orderDto.getCustomer().getWorkingTable().getTableNumber();
+                    final String dishName = objects[0] == 0 ? dishDto.getName() + " - " + tableNumber + " (" + customerName + ")" : dishDto.getName();
+                    final OrderedDish dish = new OrderedDish(dishName, dishDto.getPrice(), dishDto.getFilter(), new Date(orderDto.getTime()));
+                    final Pair<Integer, Integer> amounts = new Pair<>(orderDto.getAmount(), orderDto.isServed() ? orderDto.getAmount() : 0);
+                    final Order order = new Order(tableNumber, dish, amounts);
+                    final Map<IDish, Order> dishesMap = tablesDishesMap.computeIfAbsent(tableNumber, integer -> new HashMap<>());
+                    dishesMap.merge(dish, order, (oldOrder, newOrder) -> {
+                        final Pair<Integer, Integer> currentAmounts = oldOrder.getAmounts();
+                        currentAmounts.setX(currentAmounts.getX() + newOrder.getAmounts().getX());
+                        currentAmounts.setY(currentAmounts.getY() + newOrder.getAmounts().getY());
+                        return oldOrder;
+                    });
                 }
             }
-            outputOrders = new ArrayList<>(ordersMap.size());
-            for (final Map.Entry<Pair<Integer, IDish>, Pair<Integer, Integer>> order : ordersMap.entrySet()) {
-                if ((objects[0] == 0 && order.getValue().getX() > order.getValue().getY()) || objects[0] > 0) {
-                    outputOrders.add(new Order(order.getKey().getX(), order.getKey().getY(), order.getValue()));
-                }
-            }
+            final List<Order> outputOrders = tablesDishesMap.entrySet().stream()
+                .flatMap(e -> e.getValue().values().stream())
+                .filter(o -> (objects[0] == 0 && o.getAmounts().getX() > o.getAmounts().getY()) || objects[0] > 0)
+                .collect(Collectors.toList());
             return new BenderAsyncTaskResult<>(new Pair<>(outputOrders, outputName));
         }
 
