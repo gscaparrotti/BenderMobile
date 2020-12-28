@@ -43,7 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.stream.Collectors;
+import java9.util.Maps;
+import java9.util.stream.Collectors;
 
 import static com.github.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
 
@@ -349,6 +350,7 @@ public class TableFragment extends Fragment {
         protected BenderAsyncTaskResult<Pair<List<Order>, String>> innerDoInBackground(final Integer[] objects) {
             assert objects[0] >= 0;
             final String outputName;
+            final List<Order> outputOrders;
             if (objects[0] > 0) {
                 final CustomerDto[] customersArray = http.sendAndReceive(CustomerDto[].class, ip, 8080, "customers?tableNumber=" + objects[0], HttpServerInteractor.Method.GET, null);
                 final List<CustomerDto> customers = Arrays.asList(customersArray);
@@ -369,6 +371,8 @@ public class TableFragment extends Fragment {
                 }
                 return new Date(first.getTime()).compareTo(new Date(second.getTime()));
             });
+            // key: table number, value: map where key: dish, value; earliest order for that dish but with all the amounts
+            // the first order to be inserted will always be the earliest because they've been sorted
             final Map<Integer, Map<IDish, Order>> tablesDishesMap = new HashMap<>();
             for (final OrderDto orderDto : ordersDto) {
                 if (orderDto.getCustomer().getWorkingTable() != null) {
@@ -378,20 +382,20 @@ public class TableFragment extends Fragment {
                     final String dishName = objects[0] == 0 ? dishDto.getName() + " - " + tableNumber + " (" + customerName + ")" : dishDto.getName();
                     final OrderedDish dish = new OrderedDish(dishName, dishDto.getPrice(), dishDto.getFilter(), new Date(orderDto.getTime()));
                     final Pair<Integer, Integer> amounts = new Pair<>(orderDto.getAmount(), orderDto.isServed() ? orderDto.getAmount() : 0);
-                    final Order order = new Order(tableNumber, dish, amounts);
-                    final Map<IDish, Order> dishesMap = tablesDishesMap.computeIfAbsent(tableNumber, integer -> new HashMap<>());
-                    dishesMap.merge(dish, order, (oldOrder, newOrder) -> {
-                        final Pair<Integer, Integer> currentAmounts = oldOrder.getAmounts();
-                        currentAmounts.setX(currentAmounts.getX() + newOrder.getAmounts().getX());
-                        currentAmounts.setY(currentAmounts.getY() + newOrder.getAmounts().getY());
-                        return oldOrder;
+                    final Order currentOrder = new Order(tableNumber, dish, amounts);
+                    final Map<IDish, Order> dishesMap = Maps.computeIfAbsent(tablesDishesMap, tableNumber, integer -> new HashMap<>());
+                    Maps.merge(dishesMap, dish, currentOrder, (a, b) -> {
+                        final Pair<Integer, Integer> currentAmounts = a.getAmounts();
+                        currentAmounts.setX(currentAmounts.getX() + b.getAmounts().getX());
+                        currentAmounts.setY(currentAmounts.getY() + b.getAmounts().getY());
+                        return a;
                     });
                 }
             }
-            final List<Order> outputOrders = tablesDishesMap.entrySet().stream()
-                .flatMap(e -> e.getValue().values().stream())
+            outputOrders = stream(tablesDishesMap.entrySet())
+                .flatMap(e -> stream(e.getValue().values()))
                 .filter(o -> (objects[0] == 0 && o.getAmounts().getX() > o.getAmounts().getY()) || objects[0] > 0)
-                .collect(Collectors.toList());
+                .collect(Collectors.toUnmodifiableList());
             return new BenderAsyncTaskResult<>(new Pair<>(outputOrders, outputName));
         }
 
