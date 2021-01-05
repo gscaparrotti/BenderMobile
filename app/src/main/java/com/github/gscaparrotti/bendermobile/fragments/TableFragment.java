@@ -32,7 +32,7 @@ import com.github.gscaparrotti.bendermodel.model.IDish;
 import com.github.gscaparrotti.bendermodel.model.Order;
 import com.github.gscaparrotti.bendermodel.model.OrderedDish;
 import com.github.gscaparrotti.bendermodel.model.Pair;
-import com.google.gson.JsonArray;
+import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -305,22 +305,22 @@ public class TableFragment extends Fragment {
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(Order[] objects) {
             if (objects[0].getAmounts().getX() < 0) {
-                final JsonArray jsonNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers?tableNumber=" + objects[0].getTable(), Method.GET, null);
-                stream(jsonNames)
-                    .filter(e -> !e.getAsJsonObject().get("workingTable").isJsonNull())
-                    .map(e -> e.getAsJsonObject().get("name").getAsString())
-                    .findAny()
-                    .ifPresent(name -> http.sendAndReceiveAsString(ip, 8080, "orders?dishName=" + objects[0].getDish().getName() + "&customerName=" + name, Method.DELETE, null));
+                final CustomerDto[] customersArray = http.sendAndReceive(CustomerDto[].class, ip, 8080, "customers?tableNumber=" + objects[0].getTable(), Method.GET, null);
+                final List<CustomerDto> customers = Arrays.asList(customersArray);
+                stream(customers)
+                    .filter(c -> c.getWorkingTable() != null)
+                    .map(CustomerDto::getName)
+                    .forEach(name -> http.sendAndReceiveAsString(ip, 8080, "orders?dishName=" + objects[0].getDish().getName() + "&customerName=" + name, Method.DELETE, null));
             } else {
-                final JsonArray jsonOrders = http.sendAndReceiveAsJsonArray(ip, 8080, "orders?tableNumber=" + objects[0].getTable(), HttpServerInteractor.Method.GET, null);
-                stream(jsonOrders)
-                    .filter(e -> e.getAsJsonObject().get("dish").getAsJsonObject().get("name").getAsString().equals(objects[0].getDish().getName())
-                        && !e.getAsJsonObject().get("served").getAsBoolean())
+                final OrderDto[] ordersArray = http.sendAndReceive(OrderDto[].class, ip, 8080, "orders?tableNumber=" + objects[0].getTable(), Method.GET, null);
+                final List<OrderDto> orders = Arrays.asList(ordersArray);
+                stream(orders)
+                    .filter(o -> o.getDish().getName().equals(objects[0].getDish().getName()) && !o.isServed())
                     .map(e -> {
-                        e.getAsJsonObject().addProperty("served", true);
+                        e.setServed(true);
                         return e;
                     })
-                    .forEach(e -> http.sendAndReceiveAsString(ip, 8080, "orders?served=true", Method.POST, e.toString()));
+                    .forEach(e -> http.sendAndReceiveAsString(ip, 8080, "orders?served=true", Method.POST, new Gson().toJson(e)));
             }
             return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
@@ -352,7 +352,7 @@ public class TableFragment extends Fragment {
             final String outputName;
             final List<Order> outputOrders;
             if (objects[0] > 0) {
-                final CustomerDto[] customersArray = http.sendAndReceive(CustomerDto[].class, ip, 8080, "customers?tableNumber=" + objects[0], HttpServerInteractor.Method.GET, null);
+                final CustomerDto[] customersArray = http.sendAndReceive(CustomerDto[].class, ip, 8080, "customers?tableNumber=" + objects[0], Method.GET, null);
                 final List<CustomerDto> customers = Arrays.asList(customersArray);
                 outputName = stream(customers)
                     .filter(c -> c.getWorkingTable() != null)
@@ -363,7 +363,7 @@ public class TableFragment extends Fragment {
                 outputName = null;
             }
             final String ordersEndpoint = objects[0] == 0 ? "orders" : "orders?tableNumber=" + objects[0];
-            final OrderDto[] ordersArray = http.sendAndReceive(OrderDto[].class, ip, 8080, ordersEndpoint, HttpServerInteractor.Method.GET, null);
+            final OrderDto[] ordersArray = http.sendAndReceive(OrderDto[].class, ip, 8080, ordersEndpoint, Method.GET, null);
             final List<OrderDto> ordersDto = Arrays.asList(ordersArray);
             Collections.sort(ordersDto, (first, second) -> {
                 if (Boolean.compare(first.isServed(), second.isServed()) != 0) {
