@@ -361,7 +361,7 @@ public class TableFragment extends Fragment {
             final PendingHttpRequest ordersRequest = new PendingHttpRequest()
                 .setMethod(Method.GET)
                 .setEndpoint("orders")
-                .addQueryParam("tableNumber", Integer.toString(objects[0]))
+                .addQueryParam("tableNumber", objects[0] > 0 ? Integer.toString(objects[0]) : null)
                 .setReturnType(new TypeToken<List<OrderDto>>(){}.getType());
             final List<OrderDto> ordersDto = http.newSendAndReceive(ordersRequest);
             Collections.sort(ordersDto, (first, second) -> {
