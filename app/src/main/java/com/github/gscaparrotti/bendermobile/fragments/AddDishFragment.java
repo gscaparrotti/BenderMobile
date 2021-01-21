@@ -21,7 +21,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.github.gscaparrotti.bendermobile.R;
 import com.github.gscaparrotti.bendermobile.activities.MainActivity;
+import com.github.gscaparrotti.bendermobile.dto.CustomerDto;
+import com.github.gscaparrotti.bendermobile.dto.DishDto;
+import com.github.gscaparrotti.bendermobile.dto.OrderDto;
+import com.github.gscaparrotti.bendermobile.dto.TableDto;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor;
+import com.github.gscaparrotti.bendermobile.network.PendingHttpRequest;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.github.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
@@ -30,8 +35,7 @@ import com.github.gscaparrotti.bendermodel.model.IDish;
 import com.github.gscaparrotti.bendermodel.model.Order;
 import com.github.gscaparrotti.bendermodel.model.OrderedDish;
 import com.github.gscaparrotti.bendermodel.model.Pair;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -223,14 +227,13 @@ public class AddDishFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<List<IDish>> innerDoInBackground(Void[] objects) {
-            final JsonArray jsonMenu = http.sendAndReceiveAsJsonArray(ip, 8080, "menu", HttpServerInteractor.Method.GET, null);
-            final List<IDish> menu = stream(jsonMenu)
-                .map(e -> {
-                    final String name = e.getAsJsonObject().get("name").getAsString();
-                    final double price = e.getAsJsonObject().get("price").getAsDouble();
-                    final int filter = e.getAsJsonObject().get("filter").getAsInt();
-                    return new Dish(name, price, filter);
-                })
+            final PendingHttpRequest dishesRequest = new PendingHttpRequest()
+                .setMethod(HttpServerInteractor.Method.GET)
+                .setEndpoint("menu")
+                .setReturnType(new TypeToken<List<DishDto>>(){}.getType());
+            final List<DishDto> dishes = http.newSendAndReceive(dishesRequest);
+            final List<IDish> menu = stream(dishes)
+                .map(d -> new Dish(d.getName(), d.getPrice(), d.getFilter()))
                 .sorted(Comparators.comparing(Dish::getName))
                 .collect(Collectors.toUnmodifiableList());
             return new BenderAsyncTaskResult<>(menu);
@@ -256,25 +259,30 @@ public class AddDishFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(Order[] objects) {
-            final JsonArray jsonNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers?tableNumber=" + objects[0].getTable(), HttpServerInteractor.Method.GET, null);
-            final String name = stream(jsonNames)
-                .filter(e -> !e.getAsJsonObject().get("workingTable").isJsonNull())
-                .map(e -> e.getAsJsonObject().get("name").getAsString())
+            final PendingHttpRequest customersArrayRequest = new PendingHttpRequest()
+                .setMethod(HttpServerInteractor.Method.GET)
+                .setEndpoint("customers")
+                .addQueryParam("tableNumber", Integer.toString(objects[0].getTable()))
+                .setReturnType(new TypeToken<List<CustomerDto>>(){}.getType());
+            final List<CustomerDto> customers = http.newSendAndReceive(customersArrayRequest);
+            final String name = stream(customers)
+                .filter(e -> e.getWorkingTable() != null)
+                .map(CustomerDto::getName)
                 .findAny()
                 .orElseThrow(() -> new IllegalArgumentException(MainActivity.commonContext.getString(R.string.DatiNonValidiIngresso)));
             for (final Order order : objects) {
-                final JsonObject jsonOrder = new JsonObject();
-                final JsonObject jsonDish = new JsonObject();
-                final JsonObject jsonCustomer = new JsonObject();
-                jsonDish.addProperty("name", order.getDish().getName());
-                jsonDish.addProperty("price", order.getDish().getPrice());
-                jsonDish.addProperty("@type", order.getDish().getFilterValue() == 0 ? ".Drink" : ".Food");
-                jsonCustomer.addProperty("name", name);
-                jsonOrder.add("dish", jsonDish);
-                jsonOrder.add("customer", jsonCustomer);
-                jsonOrder.addProperty("amount", 1);
-                jsonOrder.addProperty("served", false);
-                http.sendAndReceiveAsString(ip, 8080, "orders", HttpServerInteractor.Method.POST, jsonOrder.toString());
+                final OrderDto orderDto = new OrderDto();
+                final DishDto dishDto = new DishDto();
+                final CustomerDto customerDto = new CustomerDto();
+                dishDto.setName(order.getDish().getName());
+                dishDto.setPrice(order.getDish().getPrice());
+                dishDto.setType(order.getDish().getFilterValue() == 0 ? ".Drink" : ".Food");
+                customerDto.setName(name);
+                orderDto.setDish(dishDto);
+                orderDto.setCustomer(customerDto);
+                orderDto.setAmount(1);
+                orderDto.setServed(false);
+                http.newSendAndReceive(OrderDto.getUpdateOrderDtoRequest(orderDto));
             }
             return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
@@ -299,10 +307,10 @@ public class AddDishFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<List<String>> innerDoInBackground(Integer[] objects) {
-            final JsonArray receivedNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers", HttpServerInteractor.Method.GET, null);
-            final List<String> names = stream(receivedNames)
-                .filter(e -> e.getAsJsonObject().get("table").getAsJsonObject().get("tableNumber").getAsInt() == objects[0])
-                .map(e -> e.getAsJsonObject().get("name").getAsString())
+            final List<CustomerDto> customers = http.newSendAndReceive(CustomerDto.getGetCustomerDtoRequest());
+            final List<String> names = stream(customers)
+                .filter(e -> e.getTable().getTableNumber() == objects[0])
+                .map(CustomerDto::getName)
                 .sorted()
                 .collect(Collectors.toUnmodifiableList());
             return new BenderAsyncTaskResult<>(names);
@@ -329,13 +337,13 @@ public class AddDishFragment extends Fragment {
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(String[] objects) {
             for (final String name : objects) {
-                final JsonObject jsonTable = new JsonObject();
-                final JsonObject jsonCustomer = new JsonObject();
-                jsonTable.addProperty("tableNumber", tableNumber);
-                jsonCustomer.addProperty("name", name);
-                jsonCustomer.add("workingTable", jsonTable);
-                jsonCustomer.add("table", jsonTable);
-                http.sendAndReceiveAsString(ip, 8080, "customers", HttpServerInteractor.Method.POST, jsonCustomer.toString());
+                final TableDto tableDto = new TableDto();
+                final CustomerDto customerDto = new CustomerDto();
+                tableDto.setTableNumber(tableNumber);
+                customerDto.setName(name);
+                customerDto.setWorkingTable(tableDto);
+                customerDto.setTable(tableDto);
+                http.newSendAndReceive(CustomerDto.getUpdateCustomerRequest(customerDto));
             }
             return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }

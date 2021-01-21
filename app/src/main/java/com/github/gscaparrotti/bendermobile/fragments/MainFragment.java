@@ -17,14 +17,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.github.gscaparrotti.bendermobile.R;
 import com.github.gscaparrotti.bendermobile.activities.MainActivity;
+import com.github.gscaparrotti.bendermobile.dto.CustomerDto;
+import com.github.gscaparrotti.bendermobile.dto.OrderDto;
+import com.github.gscaparrotti.bendermobile.dto.TableDto;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor.Method;
+import com.github.gscaparrotti.bendermobile.network.PendingHttpRequest;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.github.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
-import com.google.gson.JsonArray;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java9.util.stream.Collectors;
 
@@ -175,10 +179,10 @@ public class MainFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(Integer[] objects) {
-            final JsonArray orders = http.sendAndReceiveAsJsonArray(ip, 8080, "orders?tableNumber=" + objects[0], Method.GET, null);
+            final List<OrderDto> orders = http.newSendAndReceive(OrderDto.getGetOrderDtoRequest(objects[0]));
             stream(orders)
-                .map(e -> e.getAsJsonObject().get("id").getAsLong())
-                .forEach(id -> http.sendAndReceiveAsString(ip, 8080, "orders/" + id, Method.DELETE, null));
+                .map(OrderDto::getId)
+                .forEach(id -> http.newSendAndReceive(new PendingHttpRequest().setMethod(Method.DELETE).setEndpoint("orders/" + id)));
             return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
 
@@ -202,16 +206,15 @@ public class MainFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Pair<Integer, Map<Integer, String>>> innerDoInBackground(Empty[] objects) {
-            final JsonArray receivedAmount = http.sendAndReceiveAsJsonArray(ip, 8080, "tables", Method.GET, null);
-            final int amount = stream(receivedAmount)
-                .map(e -> e.getAsJsonObject().get("tableNumber").getAsInt())
+            final List<TableDto> tables = http.newSendAndReceive(TableDto.getGetTableDtoRequest());
+            final int amount = stream(tables)
+                .map(TableDto::getTableNumber)
                 .max(Integer::compare)
                 .orElse(0);
-            final JsonArray receivedNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers", Method.GET, null);
-            final Map<Integer, String> names = stream(receivedNames)
-                .filter(e -> !e.getAsJsonObject().get("workingTable").isJsonNull())
-                .collect(Collectors.toMap(e -> e.getAsJsonObject().get("workingTable").getAsJsonObject().get("tableNumber").getAsInt(),
-                    e -> e.getAsJsonObject().get("name").getAsString()));
+            final List<CustomerDto> customers = http.newSendAndReceive(CustomerDto.getGetCustomerDtoRequest());
+            final Map<Integer, String> names = stream(customers)
+                .filter(e -> e.getWorkingTable() != null)
+                .collect(Collectors.toMap(e -> e.getWorkingTable().getTableNumber(), CustomerDto::getName));
             return new BenderAsyncTaskResult<>(new Pair<>(amount, names));
         }
 

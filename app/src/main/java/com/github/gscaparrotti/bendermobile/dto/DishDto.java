@@ -12,7 +12,7 @@ public class DishDto {
     private boolean temporary;
     @Expose
     @SerializedName("price")
-    private int price;
+    private double price;
     @Expose
     @SerializedName("name")
     private String name;
@@ -36,11 +36,11 @@ public class DishDto {
         this.temporary = temporary;
     }
 
-    public int getPrice() {
+    public double getPrice() {
         return price;
     }
 
-    public void setPrice(int price) {
+    public void setPrice(double price) {
         this.price = price;
     }
 

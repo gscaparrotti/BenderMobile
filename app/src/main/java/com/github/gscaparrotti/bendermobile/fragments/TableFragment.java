@@ -24,6 +24,7 @@ import com.github.gscaparrotti.bendermobile.dto.DishDto;
 import com.github.gscaparrotti.bendermobile.dto.OrderDto;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor.Method;
+import com.github.gscaparrotti.bendermobile.network.PendingHttpRequest;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.github.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
@@ -32,9 +33,8 @@ import com.github.gscaparrotti.bendermodel.model.IDish;
 import com.github.gscaparrotti.bendermodel.model.Order;
 import com.github.gscaparrotti.bendermodel.model.OrderedDish;
 import com.github.gscaparrotti.bendermodel.model.Pair;
-import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -305,22 +305,17 @@ public class TableFragment extends Fragment {
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(Order[] objects) {
             if (objects[0].getAmounts().getX() < 0) {
-                final CustomerDto[] customersArray = http.sendAndReceive(CustomerDto[].class, ip, 8080, "customers?tableNumber=" + objects[0].getTable(), Method.GET, null);
-                final List<CustomerDto> customers = Arrays.asList(customersArray);
+                final List<CustomerDto> customers = http.newSendAndReceive(CustomerDto.getGetCustomerDtoRequest(objects[0].getTable()));
                 stream(customers)
                     .filter(c -> c.getWorkingTable() != null)
                     .map(CustomerDto::getName)
-                    .forEach(name -> http.sendAndReceiveAsString(ip, 8080, "orders?dishName=" + objects[0].getDish().getName() + "&customerName=" + name, Method.DELETE, null));
+                    .forEach(customerName -> http.newSendAndReceive(OrderDto.getDeleteOrderDtoRequest(objects[0].getDish().getName(), customerName)));
             } else {
-                final OrderDto[] ordersArray = http.sendAndReceive(OrderDto[].class, ip, 8080, "orders?tableNumber=" + objects[0].getTable(), Method.GET, null);
-                final List<OrderDto> orders = Arrays.asList(ordersArray);
+                final List<OrderDto> orders = http.newSendAndReceive(OrderDto.getGetOrderDtoRequest(objects[0].getTable()));
                 stream(orders)
                     .filter(o -> o.getDish().getName().equals(objects[0].getDish().getName()) && !o.isServed())
-                    .map(e -> {
-                        e.setServed(true);
-                        return e;
-                    })
-                    .forEach(e -> http.sendAndReceiveAsString(ip, 8080, "orders?served=true", Method.POST, new Gson().toJson(e)));
+                    .peek(o -> o.setServed(true))
+                    .forEach(o -> http.newSendAndReceive(OrderDto.getUpdateOrderDtoRequest(o).addQueryParam("served", "true")));
             }
             return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
@@ -352,8 +347,12 @@ public class TableFragment extends Fragment {
             final String outputName;
             final List<Order> outputOrders;
             if (objects[0] > 0) {
-                final CustomerDto[] customersArray = http.sendAndReceive(CustomerDto[].class, ip, 8080, "customers?tableNumber=" + objects[0], Method.GET, null);
-                final List<CustomerDto> customers = Arrays.asList(customersArray);
+                final PendingHttpRequest customersRequest = new PendingHttpRequest()
+                    .setMethod(Method.GET)
+                    .setEndpoint("customers")
+                    .addQueryParam("tableNumber", Integer.toString(objects[0]))
+                    .setReturnType(new TypeToken<List<CustomerDto>>(){}.getType());
+                final List<CustomerDto> customers = http.newSendAndReceive(customersRequest);
                 outputName = stream(customers)
                     .filter(c -> c.getWorkingTable() != null)
                     .map(CustomerDto::getName)
@@ -362,9 +361,12 @@ public class TableFragment extends Fragment {
             } else {
                 outputName = null;
             }
-            final String ordersEndpoint = objects[0] == 0 ? "orders" : "orders?tableNumber=" + objects[0];
-            final OrderDto[] ordersArray = http.sendAndReceive(OrderDto[].class, ip, 8080, ordersEndpoint, Method.GET, null);
-            final List<OrderDto> ordersDto = Arrays.asList(ordersArray);
+            final PendingHttpRequest ordersRequest = new PendingHttpRequest()
+                .setMethod(Method.GET)
+                .setEndpoint("orders")
+                .addQueryParam("tableNumber", Integer.toString(objects[0]))
+                .setReturnType(new TypeToken<List<OrderDto>>(){}.getType());
+            final List<OrderDto> ordersDto = http.newSendAndReceive(ordersRequest);
             Collections.sort(ordersDto, (first, second) -> {
                 if (Boolean.compare(first.isServed(), second.isServed()) != 0) {
                     return Boolean.compare(first.isServed(), second.isServed());
