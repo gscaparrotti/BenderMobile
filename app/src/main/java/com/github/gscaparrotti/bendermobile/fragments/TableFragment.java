@@ -378,7 +378,13 @@ public class TableFragment extends Fragment {
                     final DishDto dishDto = orderDto.getDish();
                     final String customerName = orderDto.getCustomer().getName();
                     final int tableNumber = orderDto.getCustomer().getWorkingTable().getTableNumber();
-                    final String dishName = objects[0] == 0 ? dishDto.getName() + " - " + tableNumber + " (" + customerName + ")" : dishDto.getName();
+                    String dishName = dishDto.getName();
+                    if (objects[0] == 0) {
+                        dishName = dishName + " - " + tableNumber;
+                        if (!customerName.equals("customer" + tableNumber)) {
+                            dishName = dishName + " (" + customerName + ")";
+                        }
+                    }
                     final OrderedDish dish = new OrderedDish(dishName, dishDto.getPrice(), dishDto.getFilter(), new Date(orderDto.getTime()));
                     final Pair<Integer, Integer> amounts = new Pair<>(orderDto.getAmount(), orderDto.isServed() ? orderDto.getAmount() : 0);
                     final Order currentOrder = new Order(tableNumber, dish, amounts);
