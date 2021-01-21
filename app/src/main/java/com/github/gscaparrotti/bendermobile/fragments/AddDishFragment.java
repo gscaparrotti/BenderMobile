@@ -57,9 +57,9 @@ import static com.github.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
 public class AddDishFragment extends Fragment {
 
     private static final String ARG_PARAM1 = "param1";
-    private static HttpServerInteractor http = HttpServerInteractor.getInstance();
+    private static final HttpServerInteractor http = HttpServerInteractor.getInstance();
     private int tableNumber;
-    private List<IDish> originalList = new LinkedList<>();
+    private final List<IDish> originalList = new LinkedList<>();
     private AddDishAdapter addDishAdapter;
     private ArrayAdapter<String> namesAdapter;
     private OnAddDishFragmentInteractionListener mListener;
@@ -94,12 +94,12 @@ public class AddDishFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_add_dish, container, false);
-        ListView listView = (ListView) view.findViewById(R.id.addDishListView);
+        ListView listView = view.findViewById(R.id.addDishListView);
         addDishAdapter = new AddDishAdapter(getActivity(), new LinkedList<>());
         listView.setAdapter(addDishAdapter);
-        final Button manualOrderButton = (Button) view.findViewById(R.id.buttonAggiungi);
-        final EditText price = (EditText) view.findViewById(R.id.editText_prezzo);
-        final EditText name = (EditText) view.findViewById(R.id.editText_nome);
+        final Button manualOrderButton = view.findViewById(R.id.buttonAggiungi);
+        final EditText price = view.findViewById(R.id.editText_prezzo);
+        final EditText name = view.findViewById(R.id.editText_nome);
         manualOrderButton.setOnClickListener(v -> {
             try {
                 String nameString = name.getText().toString();
@@ -135,8 +135,8 @@ public class AddDishFragment extends Fragment {
                 }
             }
         });
-        final Button newNameButton = (Button) view.findViewById(R.id.tableNameButton);
-        final EditText newNameEditText = (EditText) view.findViewById(R.id.tableNameEditText);
+        final Button newNameButton = view.findViewById(R.id.tableNameButton);
+        final EditText newNameEditText = view.findViewById(R.id.tableNameEditText);
         Spinner namesSpinner = view.findViewById(R.id.nameSpinner);
         namesAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item);
         namesAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -164,8 +164,7 @@ public class AddDishFragment extends Fragment {
         if (context instanceof OnAddDishFragmentInteractionListener) {
             mListener = (OnAddDishFragmentInteractionListener) context;
         } else {
-            throw new RuntimeException(context.toString()
-                    + " must implement OnAddDishFragmentInteractionListener");
+            throw new RuntimeException(context.toString() + " must implement OnAddDishFragmentInteractionListener");
         }
     }
 
@@ -176,10 +175,8 @@ public class AddDishFragment extends Fragment {
     }
 
     private void updateMenu(final List<IDish> newList) {
-        if (originalList != null) {
-            originalList.clear();
-            originalList.addAll(newList);
-        }
+        originalList.clear();
+        originalList.addAll(newList);
         addDishAdapter.clear();
         addDishAdapter.addAll(newList);
     }
@@ -193,7 +190,7 @@ public class AddDishFragment extends Fragment {
 
     private class AddDishAdapter extends ArrayAdapter<IDish> {
 
-        private LayoutInflater inflater;
+        private final LayoutInflater inflater;
 
         AddDishAdapter(Context context, List<IDish> dishes) {
             super(context, 0, dishes);
@@ -209,7 +206,7 @@ public class AddDishFragment extends Fragment {
             final IDish dish = Objects.requireNonNull(getItem(position));
             ((TextView) convertView.findViewById(R.id.addDishName)).setText(dish.getName());
             ((TextView) convertView.findViewById(R.id.addDishPrice)).setText(String.format(Locale.ITALIAN, "%.2f", dish.getPrice()));
-            final Button button = (Button) convertView.findViewById(R.id.addDishbutton);
+            final Button button = convertView.findViewById(R.id.addDishbutton);
             button.setOnClickListener(v -> {
                 Order order = new Order(tableNumber, new OrderedDish(dish, OrderedDish.Moments.ZERO), new Pair<>(1, 0));
                 new ServerDishUploader(AddDishFragment.this).execute(order);

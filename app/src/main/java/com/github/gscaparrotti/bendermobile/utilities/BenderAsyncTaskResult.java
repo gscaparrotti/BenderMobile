@@ -40,7 +40,7 @@ public class BenderAsyncTaskResult<A> {
 
     public static final class Empty {
 
-        private static Empty instance = new Empty();
+        private static final Empty instance = new Empty();
 
         private static Empty getInstance() {
             return instance;

@@ -17,7 +17,7 @@ import com.github.gscaparrotti.bendermodel.model.Order;
  */
 public class DishDetailFragment extends DialogFragment {
 
-    private static String ORDER_BUNDLE = "ORDER";
+    private static final String ORDER_BUNDLE = "ORDER";
     private Order order;
 
     static DishDetailFragment newInstance(final Order order) {

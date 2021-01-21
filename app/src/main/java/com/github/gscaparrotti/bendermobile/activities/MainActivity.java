@@ -50,7 +50,7 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
         super.onCreate(savedInstanceState);
         commonContext = this.getApplicationContext();
         setContentView(R.layout.activity_main);
-        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        Toolbar myToolbar = findViewById(R.id.my_toolbar);
         setActionBar(myToolbar);
         myToolbar.setTitleTextColor(Color.WHITE);
         if (savedInstanceState != null) {

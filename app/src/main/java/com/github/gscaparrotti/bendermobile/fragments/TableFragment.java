@@ -51,9 +51,9 @@ import static com.github.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
 public class TableFragment extends Fragment {
 
     private static final String TABLE_NUMBER = "TABLENMBR";
-    private static HttpServerInteractor http = HttpServerInteractor.getInstance();
+    private static final HttpServerInteractor http = HttpServerInteractor.getInstance();
     private int tableNumber;
-    private List<Order> list = new LinkedList<>();
+    private final List<Order> list = new LinkedList<>();
     private DishAdapter adapter;
     private Timer timer;
 
@@ -79,36 +79,35 @@ public class TableFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_table, container, false);
-        TextView text = (TextView) view.findViewById(R.id.tableTitle);
+        TextView text = view.findViewById(R.id.tableTitle);
         if (tableNumber > 0) {
-            text.setText(text.getText() + " " + Integer.toString(tableNumber));
+            text.setText(text.getText() + " " + tableNumber);
         } else if (tableNumber == 0) {
             text.setText(getString(R.string.ViewAllPendingOrders));
-            Button add = (Button) view.findViewById(R.id.addToTable);
+            Button add = view.findViewById(R.id.addToTable);
             add.setEnabled(false);
-            TextView price = (TextView) view.findViewById(R.id.totalPrice);
+            TextView price = view.findViewById(R.id.totalPrice);
             price.setVisibility(View.INVISIBLE);
         }
-        ListView listView = (ListView) view.findViewById(R.id.dishesList);
+        ListView listView = view.findViewById(R.id.dishesList);
         adapter = new DishAdapter(getActivity(), list);
         listView.setAdapter(adapter);
-        Button update = (Button) view.findViewById(R.id.updateButton);
+        Button update = view.findViewById(R.id.updateButton);
         update.setOnClickListener(v -> updateAndStartTasks());
-        Button addDish = (Button) view.findViewById(R.id.addToTable);
+        Button addDish = view.findViewById(R.id.addToTable);
         addDish.setOnClickListener(v -> {
             if (mListener != null) {
                 mListener.onAddDishEventFired(tableNumber);
             }
         });
-        CheckBox filter = (CheckBox) view.findViewById(R.id.filterCheckBox);
+        CheckBox filter = view.findViewById(R.id.filterCheckBox);
         if (tableNumber == 0) {
             filter.setVisibility(View.VISIBLE);
         }
         filter.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (TableFragment.this.isVisible() && list != null) {
+            if (TableFragment.this.isVisible()) {
                 updateOrders(new ArrayList<>(list));
                 if (!isChecked) {
                     new ServerOrdersDownloader(TableFragment.this).execute(tableNumber);
@@ -154,33 +153,31 @@ public class TableFragment extends Fragment {
     }
 
     private void updateOrders(final List<Order> newList) {
-        if (list != null) {
-            list.clear();
-            final CheckBox filter = (CheckBox) getView().findViewById(R.id.filterCheckBox);
-            if (filter.isChecked()) {
-                for (final Order o : newList) {
-                    if (o.getDish().getFilterValue() != 0) {
-                        list.add(o);
-                    }
+        list.clear();
+        final CheckBox filter = getView().findViewById(R.id.filterCheckBox);
+        if (filter.isChecked()) {
+            for (final Order o : newList) {
+                if (o.getDish().getFilterValue() != 0) {
+                    list.add(o);
                 }
-            } else {
-                list.addAll(newList);
             }
-            if (tableNumber != 0) {
-                Collections.sort(list, (o1, o2) -> (o2.getAmounts().getX() - o2.getAmounts().getY()) - (o1.getAmounts().getX() - o1.getAmounts().getY()));
-            } else {
-                Collections.sort(list, (o1, o2) -> {
-                    if (o1.getDish() instanceof OrderedDish && o2.getDish() instanceof OrderedDish) {
-                        return (((OrderedDish) o1.getDish()).getTime().compareTo(((OrderedDish) o2.getDish()).getTime()));
-                    } else if (o1.getDish() instanceof OrderedDish && !(o2.getDish() instanceof OrderedDish)) {
-                        return -1;
-                    } else if (o2.getDish() instanceof OrderedDish && !(o1.getDish() instanceof OrderedDish)){
-                        return 1;
-                    } else {
-                        return 0;
-                    }
-                });
-            }
+        } else {
+            list.addAll(newList);
+        }
+        if (tableNumber != 0) {
+            Collections.sort(list, (o1, o2) -> (o2.getAmounts().getX() - o2.getAmounts().getY()) - (o1.getAmounts().getX() - o1.getAmounts().getY()));
+        } else {
+            Collections.sort(list, (o1, o2) -> {
+                if (o1.getDish() instanceof OrderedDish && o2.getDish() instanceof OrderedDish) {
+                    return (((OrderedDish) o1.getDish()).getTime().compareTo(((OrderedDish) o2.getDish()).getTime()));
+                } else if (o1.getDish() instanceof OrderedDish && !(o2.getDish() instanceof OrderedDish)) {
+                    return -1;
+                } else if (o2.getDish() instanceof OrderedDish && !(o1.getDish() instanceof OrderedDish)){
+                    return 1;
+                } else {
+                    return 0;
+                }
+            });
         }
         if (adapter != null) {
             adapter.notifyDataSetChanged();
@@ -190,14 +187,14 @@ public class TableFragment extends Fragment {
             totalPrice += o.getAmounts().getX() * o.getDish().getPrice();
         }
         if (getView() != null) {
-            TextView price = (TextView) getView().findViewById(R.id.totalPrice);
+            TextView price = getView().findViewById(R.id.totalPrice);
             price.setText(getResources().getString(R.string.PrezzoTotale) + String.format("%.2f", totalPrice) + getResources().getString(R.string.valute));
         }
     }
 
     private void updateName(final String name) {
         if (getView() != null && tableNumber > 0 && !name.equals("customer" + tableNumber)) {
-            TextView nameView = (TextView) getView().findViewById(R.id.tableTitle);
+            TextView nameView = getView().findViewById(R.id.tableTitle);
             String newName = name.length() > 0 ? (" - " + name) : "";
             nameView.setText(getString(R.string.tableTitle) + " " + tableNumber + newName);
         }

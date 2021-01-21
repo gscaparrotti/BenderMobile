@@ -18,30 +18,22 @@ public class SettingsFragment extends Fragment {
     public SettingsFragment() {
     }
 
-    public static SettingsFragment newInstance() {
-        SettingsFragment fragment = new SettingsFragment();
-        return fragment;
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         final View view = inflater.inflate(R.layout.fragment_settings, container, false);
-        final TextView currentIP = (TextView) view.findViewById(R.id.currentIPView);
+        final TextView currentIP = view.findViewById(R.id.currentIPView);
         currentIP.setText("Current IP: " + getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent"));
-        view.findViewById(R.id.IPOkButton).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                EditText ipEditText = (EditText) view.findViewById(R.id.IPeditText);
-                String ip = ipEditText.getText().toString();
-                if (SettingsFragment.validIP(ip)) {
-                    SharedPreferences.Editor editor = getActivity().getSharedPreferences("BenderIP", 0).edit();
-                    editor.putString("BenderIP", ip);
-                    editor.commit();
-                    currentIP.setText("Current IP: " + getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent"));
-                } else {
-                    Toast.makeText(MainActivity.commonContext, "Invalid IP", Toast.LENGTH_SHORT).show();
-                }
+        view.findViewById(R.id.IPOkButton).setOnClickListener(v -> {
+            EditText ipEditText = view.findViewById(R.id.IPeditText);
+            String ip = ipEditText.getText().toString();
+            if (SettingsFragment.validIP(ip)) {
+                SharedPreferences.Editor editor = getActivity().getSharedPreferences("BenderIP", 0).edit();
+                editor.putString("BenderIP", ip);
+                editor.commit();
+                currentIP.setText("Current IP: " + getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent"));
+            } else {
+                Toast.makeText(MainActivity.commonContext, "Invalid IP", Toast.LENGTH_SHORT).show();
             }
         });
         return view;
