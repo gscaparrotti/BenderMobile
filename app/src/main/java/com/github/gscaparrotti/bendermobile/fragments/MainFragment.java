@@ -1,12 +1,11 @@
 package com.github.gscaparrotti.bendermobile.fragments;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,14 +16,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.github.gscaparrotti.bendermobile.R;
 import com.github.gscaparrotti.bendermobile.activities.MainActivity;
+import com.github.gscaparrotti.bendermobile.dto.CustomerDto;
+import com.github.gscaparrotti.bendermobile.dto.OrderDto;
+import com.github.gscaparrotti.bendermobile.dto.TableDto;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor.Method;
+import com.github.gscaparrotti.bendermobile.network.PendingHttpRequest;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.github.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
-import com.google.gson.JsonArray;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java9.util.stream.Collectors;
 
@@ -40,11 +43,10 @@ import static com.github.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
  */
 public class MainFragment extends Fragment {
 
-    private static HttpServerInteractor http = HttpServerInteractor.getInstance();
+    private static final HttpServerInteractor http = HttpServerInteractor.getInstance();
     private TableAdapter ta;
     private int tablesCount = 0;
-    @SuppressLint("UseSparseArrays")
-    private Map<Integer, String> names = new HashMap<>();
+    private final Map<Integer, String> names = new HashMap<>();
 
     private OnMainFragmentInteractionListener mListener;
 
@@ -64,8 +66,8 @@ public class MainFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_main, container, false);
-        GridView gv = (GridView) view.findViewById(R.id.tablesContainer);
-        ta = new TableAdapter(getActivity());
+        GridView gv = view.findViewById(R.id.tablesContainer);
+        ta = new TableAdapter(requireActivity());
         gv.setAdapter(ta);
         new TableAmountDownloader(MainFragment.this).execute();
         view.findViewById(R.id.mainUpdate).setOnClickListener(v -> new TableAmountDownloader(MainFragment.this).execute());
@@ -74,7 +76,7 @@ public class MainFragment extends Fragment {
     }
 
     @Override
-    public void onAttach(Activity context) {
+    public void onAttach(Context context) {
         super.onAttach(context);
         if (context instanceof OnMainFragmentInteractionListener) {
             mListener = (OnMainFragmentInteractionListener) context;
@@ -115,7 +117,7 @@ public class MainFragment extends Fragment {
 
     private class TableAdapter extends BaseAdapter {
 
-        private LayoutInflater inflater;
+        private final LayoutInflater inflater;
 
         TableAdapter(Context context) {
             this.inflater = LayoutInflater.from(context);
@@ -142,12 +144,12 @@ public class MainFragment extends Fragment {
                 convertView = inflater.inflate(R.layout.item_table, parent, false);
             }
             final Integer table = getItem(position);
-            final TextView tableView = (TextView) convertView.findViewById(R.id.table);
+            final TextView tableView = convertView.findViewById(R.id.table);
             tableView.setText(getString(R.string.itemTableText) + table + formattedName(names.get(table), table));
             convertView.setLongClickable(true);
             convertView.setOnClickListener(v -> mListener.onTablePressedEventFired(table));
             convertView.setOnLongClickListener(v -> {
-                new AlertDialog.Builder(getActivity())
+                new AlertDialog.Builder(requireActivity())
                         .setTitle(getString(R.string.ResetConfirmDialogTitle))
                         .setMessage(R.string.ResetConfirmDialogQuestion)
                         .setIcon(android.R.drawable.ic_dialog_alert)
@@ -175,10 +177,10 @@ public class MainFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(Integer[] objects) {
-            final JsonArray orders = http.sendAndReceiveAsJsonArray(ip, 8080, "orders?tableNumber=" + objects[0], Method.GET, null);
+            final List<OrderDto> orders = http.newSendAndReceive(OrderDto.getGetOrderDtoRequest(objects[0]));
             stream(orders)
-                .map(e -> e.getAsJsonObject().get("id").getAsLong())
-                .forEach(id -> http.sendAndReceiveAsString(ip, 8080, "orders/" + id, Method.DELETE, null));
+                .map(OrderDto::getId)
+                .forEach(id -> http.newSendAndReceive(new PendingHttpRequest().setMethod(Method.DELETE).setEndpoint("orders/" + id)));
             return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
 
@@ -202,16 +204,15 @@ public class MainFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Pair<Integer, Map<Integer, String>>> innerDoInBackground(Empty[] objects) {
-            final JsonArray receivedAmount = http.sendAndReceiveAsJsonArray(ip, 8080, "tables", Method.GET, null);
-            final int amount = stream(receivedAmount)
-                .map(e -> e.getAsJsonObject().get("tableNumber").getAsInt())
+            final List<TableDto> tables = http.newSendAndReceive(TableDto.getGetTableDtoRequest());
+            final int amount = stream(tables)
+                .map(TableDto::getTableNumber)
                 .max(Integer::compare)
                 .orElse(0);
-            final JsonArray receivedNames = http.sendAndReceiveAsJsonArray(ip, 8080, "customers", Method.GET, null);
-            final Map<Integer, String> names = stream(receivedNames)
-                .filter(e -> !e.getAsJsonObject().get("workingTable").isJsonNull())
-                .collect(Collectors.toMap(e -> e.getAsJsonObject().get("workingTable").getAsJsonObject().get("tableNumber").getAsInt(),
-                    e -> e.getAsJsonObject().get("name").getAsString()));
+            final List<CustomerDto> customers = http.newSendAndReceive(CustomerDto.getGetCustomerDtoRequest());
+            final Map<Integer, String> names = stream(customers)
+                .filter(e -> e.getWorkingTable() != null)
+                .collect(Collectors.toMap(e -> e.getWorkingTable().getTableNumber(), CustomerDto::getName));
             return new BenderAsyncTaskResult<>(new Pair<>(amount, names));
         }
 

@@ -1,7 +1,7 @@
 package com.github.gscaparrotti.bendermobile.utilities;
 
 import android.annotation.SuppressLint;
-import android.app.Fragment;
+import android.support.v4.app.Fragment;
 import com.github.gscaparrotti.bendermobile.activities.MainActivity;
 
 public abstract class FragmentNetworkingBenderAsyncTask<INPUT, OUTPUT> extends BenderAsyncTask<INPUT, OUTPUT> {
@@ -18,6 +18,7 @@ public abstract class FragmentNetworkingBenderAsyncTask<INPUT, OUTPUT> extends B
     protected final void onPreExecute() {
         super.onPreExecute();
         if (fragment.isAdded()) {
+            assert fragment.getActivity() != null;
             if (fragment.getActivity() instanceof MainActivity) {
                 ((MainActivity) fragment.getActivity()).toggleLoadingLabel(true);
             }

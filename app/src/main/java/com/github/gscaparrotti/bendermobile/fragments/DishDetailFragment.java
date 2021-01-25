@@ -2,14 +2,12 @@ package com.github.gscaparrotti.bendermobile.fragments;
 
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.app.DialogFragment;
+import android.support.v4.app.DialogFragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
 import com.github.gscaparrotti.bendermobile.R;
-
 import com.github.gscaparrotti.bendermodel.model.Order;
 
 /**
@@ -17,7 +15,7 @@ import com.github.gscaparrotti.bendermodel.model.Order;
  */
 public class DishDetailFragment extends DialogFragment {
 
-    private static String ORDER_BUNDLE = "ORDER";
+    private static final String ORDER_BUNDLE = "ORDER";
     private Order order;
 
     static DishDetailFragment newInstance(final Order order) {
@@ -31,6 +29,7 @@ public class DishDetailFragment extends DialogFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        assert this.getArguments() != null;
         order = (Order) getArguments().getSerializable(DishDetailFragment.ORDER_BUNDLE);
     }
 
