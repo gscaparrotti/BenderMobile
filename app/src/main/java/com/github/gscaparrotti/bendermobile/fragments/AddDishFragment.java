@@ -1,11 +1,11 @@
 package com.github.gscaparrotti.bendermobile.fragments;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.Fragment;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -92,10 +92,15 @@ public class AddDishFragment extends Fragment {
     }
 
     @Override
+    public void onActivityCreated(@Nullable @org.jetbrains.annotations.Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_add_dish, container, false);
         ListView listView = view.findViewById(R.id.addDishListView);
-        addDishAdapter = new AddDishAdapter(getActivity(), new LinkedList<>());
+        addDishAdapter = new AddDishAdapter(requireActivity(), new LinkedList<>());
         listView.setAdapter(addDishAdapter);
         final Button manualOrderButton = view.findViewById(R.id.buttonAggiungi);
         final EditText price = view.findViewById(R.id.editText_prezzo);
@@ -138,7 +143,7 @@ public class AddDishFragment extends Fragment {
         final Button newNameButton = view.findViewById(R.id.tableNameButton);
         final EditText newNameEditText = view.findViewById(R.id.tableNameEditText);
         Spinner namesSpinner = view.findViewById(R.id.nameSpinner);
-        namesAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item);
+        namesAdapter = new ArrayAdapter<>(requireActivity(), android.R.layout.simple_spinner_item);
         namesAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         namesSpinner.setAdapter(namesAdapter);
         namesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -159,7 +164,7 @@ public class AddDishFragment extends Fragment {
     }
 
     @Override
-    public void onAttach(Activity context) {
+    public void onAttach(Context context) {
         super.onAttach(context);
         if (context instanceof OnAddDishFragmentInteractionListener) {
             mListener = (OnAddDishFragmentInteractionListener) context;

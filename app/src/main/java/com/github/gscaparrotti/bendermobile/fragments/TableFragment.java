@@ -1,12 +1,11 @@
 package com.github.gscaparrotti.bendermobile.fragments;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -92,7 +91,7 @@ public class TableFragment extends Fragment {
             price.setVisibility(View.INVISIBLE);
         }
         ListView listView = view.findViewById(R.id.dishesList);
-        adapter = new DishAdapter(getActivity(), list);
+        adapter = new DishAdapter(requireActivity(), list);
         listView.setAdapter(adapter);
         Button update = view.findViewById(R.id.updateButton);
         update.setOnClickListener(v -> updateAndStartTasks());
@@ -128,7 +127,7 @@ public class TableFragment extends Fragment {
     }
 
     @Override
-    public void onAttach(Activity context) {
+    public void onAttach(Context context) {
         super.onAttach(context);
         if (context instanceof OnTableFragmentInteractionListener) {
             mListener = (OnTableFragmentInteractionListener) context;
@@ -153,6 +152,7 @@ public class TableFragment extends Fragment {
     }
 
     private void updateOrders(final List<Order> newList) {
+        assert this.getView() != null;
         list.clear();
         final CheckBox filter = getView().findViewById(R.id.filterCheckBox);
         if (filter.isChecked()) {
@@ -239,7 +239,7 @@ public class TableFragment extends Fragment {
 
     private class DishAdapter extends ArrayAdapter<Order> {
 
-        private LayoutInflater inflater;
+        private final LayoutInflater inflater;
 
         DishAdapter(Context context, List<Order> persone) {
             super(context, 0, persone);
@@ -253,6 +253,7 @@ public class TableFragment extends Fragment {
                 convertView = inflater.inflate(R.layout.item_dish, parent, false);
             }
             final Order order = getItem(position);
+            assert order != null;
             convertView.setOnClickListener(v -> {
                 final DishDetailFragment detail = DishDetailFragment.newInstance(order);
                 detail.show(getFragmentManager(), "Dialog");

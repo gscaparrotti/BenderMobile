@@ -1,12 +1,11 @@
 package com.github.gscaparrotti.bendermobile.fragments;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -68,7 +67,7 @@ public class MainFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_main, container, false);
         GridView gv = view.findViewById(R.id.tablesContainer);
-        ta = new TableAdapter(getActivity());
+        ta = new TableAdapter(requireActivity());
         gv.setAdapter(ta);
         new TableAmountDownloader(MainFragment.this).execute();
         view.findViewById(R.id.mainUpdate).setOnClickListener(v -> new TableAmountDownloader(MainFragment.this).execute());
@@ -77,7 +76,7 @@ public class MainFragment extends Fragment {
     }
 
     @Override
-    public void onAttach(Activity context) {
+    public void onAttach(Context context) {
         super.onAttach(context);
         if (context instanceof OnMainFragmentInteractionListener) {
             mListener = (OnMainFragmentInteractionListener) context;
@@ -150,7 +149,7 @@ public class MainFragment extends Fragment {
             convertView.setLongClickable(true);
             convertView.setOnClickListener(v -> mListener.onTablePressedEventFired(table));
             convertView.setOnLongClickListener(v -> {
-                new AlertDialog.Builder(getActivity())
+                new AlertDialog.Builder(requireActivity())
                         .setTitle(getString(R.string.ResetConfirmDialogTitle))
                         .setMessage(R.string.ResetConfirmDialogQuestion)
                         .setIcon(android.R.drawable.ic_dialog_alert)

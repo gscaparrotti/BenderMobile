@@ -1,15 +1,15 @@
 package com.github.gscaparrotti.bendermobile.activities;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.Fragment;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
@@ -20,7 +20,7 @@ import com.github.gscaparrotti.bendermobile.fragments.MainFragment;
 import com.github.gscaparrotti.bendermobile.fragments.SettingsFragment;
 import com.github.gscaparrotti.bendermobile.fragments.TableFragment;
 
-public class MainActivity extends Activity implements TableFragment.OnTableFragmentInteractionListener, MainFragment.OnMainFragmentInteractionListener, AddDishFragment.OnAddDishFragmentInteractionListener {
+public class MainActivity extends FragmentActivity implements TableFragment.OnTableFragmentInteractionListener, MainFragment.OnMainFragmentInteractionListener, AddDishFragment.OnAddDishFragmentInteractionListener {
 
     /*
         Il warning è un falso positivo: se commonContext non venisse riassegnato
@@ -54,7 +54,7 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
         setActionBar(myToolbar);
         myToolbar.setTitleTextColor(Color.WHITE);
         if (savedInstanceState != null) {
-            getFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+            getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
         }
         replaceFragment(MainFragment.newInstance(), false);
     }
@@ -78,8 +78,8 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
     @Override
     public void onBackPressed() {
         toggleLoadingLabel(false);
-        if (getFragmentManager().getBackStackEntryCount() > 0)
-            getFragmentManager().popBackStack();
+        if (getSupportFragmentManager().getBackStackEntryCount() > 0)
+            getSupportFragmentManager().popBackStack();
         else
             super.onBackPressed();
 
@@ -87,7 +87,7 @@ public class MainActivity extends Activity implements TableFragment.OnTableFragm
 
     private void replaceFragment(Fragment fragment, boolean back) {
         toggleLoadingLabel(false);
-        FragmentManager manager = getFragmentManager();
+        FragmentManager manager = this.getSupportFragmentManager();
         FragmentTransaction transaction = manager.beginTransaction();
         transaction.replace(R.id.container, fragment);
         if (back)
