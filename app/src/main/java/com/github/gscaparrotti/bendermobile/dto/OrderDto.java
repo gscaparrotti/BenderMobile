@@ -75,11 +75,11 @@ public class OrderDto {
         this.served = served;
     }
 
-    public static PendingHttpRequest getGetOrderDtoRequest(final int tableNumber) {
+    public static PendingHttpRequest getGetOrderDtoRequest(final Integer tableNumber) {
         return new PendingHttpRequest()
             .setMethod(HttpServerInteractor.Method.GET)
             .setEndpoint("orders")
-            .addQueryParam("tableNumber", Integer.toString(tableNumber))
+            .addQueryParam("tableNumber", tableNumber != null ? tableNumber.toString() : null)
             .setReturnType(new TypeToken<List<OrderDto>>(){}.getType());
     }
 
@@ -97,5 +97,11 @@ public class OrderDto {
             .addQueryParam("dishName", dishName)
             .addQueryParam("customerName", customerName)
             .setReturnType(null);
+    }
+
+    public static PendingHttpRequest getDeleteOrderDtoRequest(final long id) {
+        return new PendingHttpRequest()
+            .setMethod(HttpServerInteractor.Method.DELETE)
+            .setEndpoint("orders/" + id);
     }
 }

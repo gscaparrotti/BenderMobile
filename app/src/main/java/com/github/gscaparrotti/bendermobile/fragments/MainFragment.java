@@ -20,8 +20,6 @@ import com.github.gscaparrotti.bendermobile.dto.CustomerDto;
 import com.github.gscaparrotti.bendermobile.dto.OrderDto;
 import com.github.gscaparrotti.bendermobile.dto.TableDto;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor;
-import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor.Method;
-import com.github.gscaparrotti.bendermobile.network.PendingHttpRequest;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.github.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
@@ -180,7 +178,7 @@ public class MainFragment extends Fragment {
             final List<OrderDto> orders = http.newSendAndReceive(OrderDto.getGetOrderDtoRequest(objects[0]));
             stream(orders)
                 .map(OrderDto::getId)
-                .forEach(id -> http.newSendAndReceive(new PendingHttpRequest().setMethod(Method.DELETE).setEndpoint("orders/" + id)));
+                .forEach(id -> http.newSendAndReceive(OrderDto.getDeleteOrderDtoRequest(id)));
             return new BenderAsyncTaskResult<>(BenderAsyncTaskResult.EMPTY_RESULT);
         }
 

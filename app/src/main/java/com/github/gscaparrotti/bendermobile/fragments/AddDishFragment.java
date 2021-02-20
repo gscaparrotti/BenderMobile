@@ -26,7 +26,6 @@ import com.github.gscaparrotti.bendermobile.dto.DishDto;
 import com.github.gscaparrotti.bendermobile.dto.OrderDto;
 import com.github.gscaparrotti.bendermobile.dto.TableDto;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor;
-import com.github.gscaparrotti.bendermobile.network.PendingHttpRequest;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.github.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
@@ -35,7 +34,6 @@ import com.github.gscaparrotti.bendermodel.model.IDish;
 import com.github.gscaparrotti.bendermodel.model.Order;
 import com.github.gscaparrotti.bendermodel.model.OrderedDish;
 import com.github.gscaparrotti.bendermodel.model.Pair;
-import com.google.gson.reflect.TypeToken;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -229,11 +227,7 @@ public class AddDishFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<List<IDish>> innerDoInBackground(Void[] objects) {
-            final PendingHttpRequest dishesRequest = new PendingHttpRequest()
-                .setMethod(HttpServerInteractor.Method.GET)
-                .setEndpoint("menu")
-                .setReturnType(new TypeToken<List<DishDto>>(){}.getType());
-            final List<DishDto> dishes = http.newSendAndReceive(dishesRequest);
+            final List<DishDto> dishes = http.newSendAndReceive(DishDto.getGetMenuRequest());
             final List<IDish> menu = stream(dishes)
                 .map(d -> new Dish(d.getName(), d.getPrice(), d.getFilter()))
                 .sorted(Comparators.comparing(Dish::getName))
@@ -261,12 +255,7 @@ public class AddDishFragment extends Fragment {
 
         @Override
         protected BenderAsyncTaskResult<Empty> innerDoInBackground(Order[] objects) {
-            final PendingHttpRequest customersArrayRequest = new PendingHttpRequest()
-                .setMethod(HttpServerInteractor.Method.GET)
-                .setEndpoint("customers")
-                .addQueryParam("tableNumber", Integer.toString(objects[0].getTable()))
-                .setReturnType(new TypeToken<List<CustomerDto>>(){}.getType());
-            final List<CustomerDto> customers = http.newSendAndReceive(customersArrayRequest);
+            final List<CustomerDto> customers = http.newSendAndReceive(CustomerDto.getGetCustomerDtoRequest(objects[0].getTable()));
             final String name = stream(customers)
                 .filter(e -> e.getWorkingTable() != null)
                 .map(CustomerDto::getName)

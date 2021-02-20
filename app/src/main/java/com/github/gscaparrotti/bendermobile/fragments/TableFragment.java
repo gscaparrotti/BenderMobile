@@ -22,8 +22,6 @@ import com.github.gscaparrotti.bendermobile.dto.CustomerDto;
 import com.github.gscaparrotti.bendermobile.dto.DishDto;
 import com.github.gscaparrotti.bendermobile.dto.OrderDto;
 import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor;
-import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor.Method;
-import com.github.gscaparrotti.bendermobile.network.PendingHttpRequest;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult;
 import com.github.gscaparrotti.bendermobile.utilities.BenderAsyncTaskResult.Empty;
 import com.github.gscaparrotti.bendermobile.utilities.FragmentNetworkingBenderAsyncTask;
@@ -32,7 +30,6 @@ import com.github.gscaparrotti.bendermodel.model.IDish;
 import com.github.gscaparrotti.bendermodel.model.Order;
 import com.github.gscaparrotti.bendermodel.model.OrderedDish;
 import com.github.gscaparrotti.bendermodel.model.Pair;
-import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -345,12 +342,7 @@ public class TableFragment extends Fragment {
             final String outputName;
             final List<Order> outputOrders;
             if (objects[0] > 0) {
-                final PendingHttpRequest customersRequest = new PendingHttpRequest()
-                    .setMethod(Method.GET)
-                    .setEndpoint("customers")
-                    .addQueryParam("tableNumber", Integer.toString(objects[0]))
-                    .setReturnType(new TypeToken<List<CustomerDto>>(){}.getType());
-                final List<CustomerDto> customers = http.newSendAndReceive(customersRequest);
+                final List<CustomerDto> customers = http.newSendAndReceive(CustomerDto.getGetCustomerDtoRequest(objects[0]));
                 outputName = stream(customers)
                     .filter(c -> c.getWorkingTable() != null)
                     .map(CustomerDto::getName)
@@ -359,12 +351,7 @@ public class TableFragment extends Fragment {
             } else {
                 outputName = null;
             }
-            final PendingHttpRequest ordersRequest = new PendingHttpRequest()
-                .setMethod(Method.GET)
-                .setEndpoint("orders")
-                .addQueryParam("tableNumber", objects[0] > 0 ? Integer.toString(objects[0]) : null)
-                .setReturnType(new TypeToken<List<OrderDto>>(){}.getType());
-            final List<OrderDto> ordersDto = http.newSendAndReceive(ordersRequest);
+            final List<OrderDto> ordersDto = http.newSendAndReceive(OrderDto.getGetOrderDtoRequest(objects[0] > 0 ? objects[0] : null));
             Collections.sort(ordersDto, (first, second) -> {
                 if (Boolean.compare(first.isServed(), second.isServed()) != 0) {
                     return Boolean.compare(first.isServed(), second.isServed());

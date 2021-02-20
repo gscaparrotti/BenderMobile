@@ -6,7 +6,6 @@ import com.github.gscaparrotti.bendermobile.activities.MainActivity;
 
 public abstract class FragmentNetworkingBenderAsyncTask<INPUT, OUTPUT> extends BenderAsyncTask<INPUT, OUTPUT> {
 
-    protected String ip;
     @SuppressLint("StaticFieldLeak")
     private final Fragment fragment;
 
@@ -22,7 +21,6 @@ public abstract class FragmentNetworkingBenderAsyncTask<INPUT, OUTPUT> extends B
             if (fragment.getActivity() instanceof MainActivity) {
                 ((MainActivity) fragment.getActivity()).toggleLoadingLabel(true);
             }
-            this.ip = fragment.getActivity().getSharedPreferences("BenderIP", 0).getString("BenderIP", "Absent");
             innerOnPreExecute();
         } else {
             this.cancel(true);

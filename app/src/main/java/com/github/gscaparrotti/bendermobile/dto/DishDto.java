@@ -1,7 +1,11 @@
 package com.github.gscaparrotti.bendermobile.dto;
 
+import com.github.gscaparrotti.bendermobile.network.HttpServerInteractor;
+import com.github.gscaparrotti.bendermobile.network.PendingHttpRequest;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
+import java.util.List;
 
 public class DishDto {
     @Expose
@@ -58,5 +62,12 @@ public class DishDto {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public static PendingHttpRequest getGetMenuRequest() {
+        return new PendingHttpRequest()
+            .setMethod(HttpServerInteractor.Method.GET)
+            .setEndpoint("menu")
+            .setReturnType(new TypeToken<List<DishDto>>(){}.getType());
     }
 }
