@@ -39,7 +39,7 @@ public class HttpServerInteractor {
             .host(pendingHttpRequest.getAddress())
             .port(pendingHttpRequest.getPort())
             .addPathSegment("api")
-            .addPathSegment(pendingHttpRequest.getEndpoint());
+            .addPathSegments(pendingHttpRequest.getEndpoint());
         for (final Pair<String, String> queryParam : pendingHttpRequest.getQueryParams()) {
             httpUrlBuilder.addQueryParameter(queryParam.getX(), queryParam.getY());
         }
