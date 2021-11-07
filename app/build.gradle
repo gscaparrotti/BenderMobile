@@ -4,14 +4,16 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+        return void
     }
     compileSdkVersion 29
     defaultConfig {
+        //noinspection OldTargetApi
         targetSdkVersion 29
         applicationId "com.github.gscaparrotti.bendermobile"
         minSdkVersion 21
         versionCode 10
-        versionName "0.5.0-beta.10"
+        versionName "0.5.0-beta.11"
     }
     buildTypes {
         release {
@@ -27,7 +29,6 @@ configurations.all {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
     //noinspection GradleCompatible
     implementation 'com.android.support:appcompat-v7:28.0.0'
     implementation 'me.grantland:autofittextview:0.2.1'
@@ -35,8 +36,5 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.8.0'
     implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'net.sourceforge.streamsupport:android-retrostreams:1.7.2'
-    implementation ('commons-validator:commons-validator:1.6') {
-        exclude group: 'commons-logging', module: 'commons-logging'
-    }
     testImplementation 'junit:junit:4.12'
 }

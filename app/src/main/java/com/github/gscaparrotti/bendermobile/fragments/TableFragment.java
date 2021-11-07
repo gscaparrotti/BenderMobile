@@ -257,6 +257,9 @@ public class TableFragment extends Fragment {
             });
             convertView.setLongClickable(true);
             convertView.setOnLongClickListener(v -> {
+                if (order.getAmounts().getX().equals(0)) {
+                    return false;
+                }
                 order.getAmounts().setY(order.getAmounts().getX());
                 if (tableNumber == 0) {
                     final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(" - ")), order.getDish().getPrice(), 0);
@@ -268,6 +271,9 @@ public class TableFragment extends Fragment {
                 return true;
             });
             convertView.findViewById(R.id.removeButton).setOnClickListener(v -> {
+                if (order.getAmounts().getX().equals(0)) {
+                    return;
+                }
                 if (tableNumber == 0) {
                     final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(" - ")), order.getDish().getPrice(), 0);
                     final Order newOrder = new Order(order.getTable(), dish, new Pair<>(-1, 1));
