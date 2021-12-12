@@ -1,9 +1,11 @@
 <resources>
+    <string name="serverPort">8080</string>
     <string name="app_name">Bender Mobile</string>
-    <string name="itemTableText">"Tavolo N°. "</string>
+    <string name="itemTableText">"N°. "</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="tableTitle">Dettaglio Tavolo N°.</string>
     <string name="addToTableText">Aggiungi Piatto</string>
+    <string name="modifyTableText">Modifica</string>
     <string name="tableTitleDetailText">Elenco ordini</string>
     <string name="totalPrice">Prezzo Totale:</string>
     <string name="updateButtonString">Aggiorna</string>
@@ -23,11 +25,22 @@
     <string name="ServerError">Impossibile comunicare col server</string>
     <string name="ResetSuccess">Tavolo ripristinato con successo</string>
     <string name="UpdateSuccess">Ordine aggiornato con successo</string>
-    <string name="Remove">"Rimuovi (1)"</string>
+    <string name="NameUpdateSuccess">Nome impostato con successo</string>
+    <string name="Remove">"Rimuovi"</string>
     <string name="ViewAllPendingOrders">Da Servire</string>
     <string name="Aggiungi">Aggiungi</string>
     <string name="NomePiatto">Nome Piatto</string>
     <string name="PrezzoPiatto">Prezzo Piatto</string>
     <string name="PrezzoTotale">"Conto Totale: "</string>
     <string name="valute">€</string>
+    <string name="NomeTavolo">Nuovo nome</string>
+    <string name="ErroreSocketConChiusura">Errore di comunicazione (la socket è stata chiusa)</string>
+    <string name="ErroreSocketSenzaChiusura">Errore di comunicazione (la socket NON è stata chiusa)</string>
+    <string name="ErroreHTTP">Errore HTTP</string>
+    <string name="DatiNonValidi">Ricevuti dati non validi</string>
+    <string name="DatiNonValidiBodyVuoto">Ricevuti dati non validi (body HTTP vuoto)</string>
+    <string name="DatiNonValidiIngresso">Forniti dati non validi</string>
+    <string name="GenericError">Errore Generico</string>
+    <string name="Wait">Attendere…</string>
+    <string name="loading">LOADING…</string>
 </resources>

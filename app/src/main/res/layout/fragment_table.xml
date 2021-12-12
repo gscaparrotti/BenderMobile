@@ -40,7 +40,7 @@
         android:layout_height="wrap_content"
         android:layout_alignRight="@id/fakeView"
         android:layout_alignParentLeft="true"
-        android:text="@string/addToTableText"/>
+        android:text="@string/modifyTableText"/>
 
     <Button
         android:layout_alignParentBottom="true"

@@ -2,46 +2,79 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".fragments.AddDishFragment"
-    android:orientation="vertical">
+    android:layout_below="@+id/my_toolbar"
+    android:orientation="vertical"
+    tools:context=".fragments.AddDishFragment">
 
     <!-- TODO: Update blank fragment layout -->
 
+
+    <LinearLayout
+            android:id="@+id/nameContainer"
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+>
+        <Spinner
+                android:id="@+id/nameSpinner"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight=".3"
+        />
+        <EditText
+                android:id="@+id/tableNameEditText"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight=".3"
+                android:hint="@string/NomeTavolo"
+                android:inputType="textPersonName"/>
+        <Button
+                android:id="@+id/tableNameButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight=".3"
+                android:maxLines="1"
+                android:text="@string/updateButtonString"/>
+    </LinearLayout>
+
     <ListView
-        android:layout_width="match_parent"
-        android:layout_height="444dp"
-        android:id="@+id/addDishListView"
-        android:layout_gravity="center_horizontal"
-        android:layout_alignParentTop="true"
-        android:layout_above="@+id/editText_prezzo" />
+            android:id="@+id/addDishListView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_below="@id/nameContainer"
+            android:layout_above="@+id/buttonAggiungi"/>
 
     <EditText
+        android:id="@+id/editText_nome"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/editText_nome"
         android:layout_alignParentBottom="true"
         android:layout_alignParentStart="true"
         android:layout_toStartOf="@+id/buttonAggiungi"
         android:hint="@string/NomePiatto" />
 
     <Button
+        android:id="@+id/buttonAggiungi"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/Aggiungi"
-        android:id="@+id/buttonAggiungi"
         android:layout_alignBottom="@+id/editText_nome"
-        android:layout_alignTop="@+id/editText_prezzo"
         android:layout_alignParentEnd="true"
-        android:layout_gravity="right" />
+        android:layout_alignTop="@+id/editText_prezzo"
+        android:layout_gravity="right"
+        android:maxLines="1"
+        android:text="@string/Aggiungi" />
 
     <EditText
+        android:id="@+id/editText_prezzo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:inputType="numberDecimal"
-        android:ems="10"
-        android:id="@+id/editText_prezzo"
         android:layout_above="@+id/editText_nome"
         android:layout_alignParentStart="true"
         android:layout_toStartOf="@+id/buttonAggiungi"
-        android:hint="@string/PrezzoPiatto" />
+        android:ems="10"
+        android:hint="@string/PrezzoPiatto"
+        android:inputType="numberDecimal" />
+
+
 </RelativeLayout>
