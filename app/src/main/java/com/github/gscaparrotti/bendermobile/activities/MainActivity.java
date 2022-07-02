@@ -16,6 +16,7 @@ import android.view.View;
 import android.widget.Toolbar;
 import com.github.gscaparrotti.bendermobile.R;
 import com.github.gscaparrotti.bendermobile.fragments.AddDishFragment;
+import com.github.gscaparrotti.bendermobile.fragments.CustomersFragment;
 import com.github.gscaparrotti.bendermobile.fragments.MainFragment;
 import com.github.gscaparrotti.bendermobile.fragments.SettingsFragment;
 import com.github.gscaparrotti.bendermobile.fragments.TableFragment;
@@ -100,6 +101,10 @@ public class MainActivity extends FragmentActivity implements TableFragment.OnTa
         replaceFragment(TableFragment.newInstance(tableNumber), true);
     }
 
+    @Override
+    public void onCustomersPressedEventFired() {
+        replaceFragment(CustomersFragment.newInstance(), true);
+    }
 
     @Override
     public void onAddDishEventFired(final int tableNumber) {

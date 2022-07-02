@@ -28,6 +28,9 @@
     <string name="NameUpdateSuccess">Nome impostato con successo</string>
     <string name="Remove">"Rimuovi"</string>
     <string name="ViewAllPendingOrders">Da Servire</string>
+    <string name="customers">Clienti</string>
+    <string name="saveCustomers">Salva clienti</string>
+    <string name="tableShort">Tavolo N°. </string>
     <string name="Aggiungi">Aggiungi</string>
     <string name="NomePiatto">Nome Piatto</string>
     <string name="PrezzoPiatto">Prezzo Piatto</string>

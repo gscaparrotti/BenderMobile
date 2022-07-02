@@ -10,18 +10,22 @@
     android:layout_below="@+id/my_toolbar"
     tools:context=".activities.MainActivity">
 
-    <GridView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/tablesContainer"
-        android:horizontalSpacing="1dp"
-        android:verticalSpacing="1dp"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:numColumns="auto_fit"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentTop="true"
-        android:layout_above="@+id/customersButtonsContainer" />
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textSize="35sp"
+            android:text="@string/customers"
+            android:id="@+id/customersTitle"
+            android:layout_alignParentTop="true"
+            android:textStyle="bold"
+            android:layout_alignParentStart="true"
+            android:layout_alignEnd="@+id/customersList"
+            android:autoText="false"
+            android:gravity="center_horizontal"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentRight="true"
+            android:elegantTextHeight="false"/>
 
     <LinearLayout
             android:id="@+id/customersButtonsContainer"
@@ -31,29 +35,20 @@
             android:orientation="horizontal"
             android:layout_centerInParent="true"
     >
-
-        <Button
-                style="?android:attr/buttonStyleSmall"
-                android:layout_weight="1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/updateButtonString"
-                android:id="@+id/mainUpdate"/>
-
-        <Button
-                android:text="@string/ViewAllPendingOrders"
-                android:id="@+id/allPending"
-                android:layout_weight="1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-
         <Button
                 android:layout_weight="1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/customers"
+                android:text="@string/saveCustomers"
                 android:id="@+id/showCustomersButton"/>
     </LinearLayout>
 
+    <ListView
+            android:descendantFocusability="afterDescendants"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/customersList"
+        android:layout_below="@+id/customersTitle"
+        android:layout_above="@+id/customersButtonsContainer"/>
 
 </RelativeLayout>

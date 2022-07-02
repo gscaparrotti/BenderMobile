@@ -70,6 +70,7 @@ public class MainFragment extends Fragment {
         new TableAmountDownloader(MainFragment.this).execute();
         view.findViewById(R.id.mainUpdate).setOnClickListener(v -> new TableAmountDownloader(MainFragment.this).execute());
         view.findViewById(R.id.allPending).setOnClickListener(v -> mListener.onTablePressedEventFired(0));
+        view.findViewById(R.id.showCustomersButton).setOnClickListener(v -> mListener.onCustomersPressedEventFired());
         return view;
     }
 
@@ -111,6 +112,7 @@ public class MainFragment extends Fragment {
 
     public interface OnMainFragmentInteractionListener {
         void onTablePressedEventFired(int tableNumber);
+        void onCustomersPressedEventFired();
     }
 
     private class TableAdapter extends BaseAdapter {
