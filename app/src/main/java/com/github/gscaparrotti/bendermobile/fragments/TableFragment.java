@@ -40,16 +40,22 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java9.util.Maps;
+import java9.util.function.Function;
 import java9.util.stream.Collectors;
 
 import static com.github.gscaparrotti.bendermobile.utilities.StreamUtils.stream;
 
+@SuppressWarnings("deprecation")
+@SuppressLint("SetTextI18n")
 public class TableFragment extends Fragment {
 
     private static final String TABLE_NUMBER = "TABLENMBR";
+    private static final String NAME_SEPARATOR = " ~ ";
     private static final HttpServerInteractor http = HttpServerInteractor.getInstance();
     private int tableNumber;
     private final List<Order> list = new LinkedList<>();
+    private boolean filter = false;
+    private boolean aggregate = false;
     private DishAdapter adapter;
     private Timer timer;
 
@@ -78,13 +84,13 @@ public class TableFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_table, container, false);
         TextView text = view.findViewById(R.id.tableTitle);
+        Button add = view.findViewById(R.id.addToTable);
+        TextView price = view.findViewById(R.id.totalPrice);
         if (tableNumber > 0) {
             text.setText(text.getText() + " " + tableNumber);
         } else if (tableNumber == 0) {
             text.setText(getString(R.string.ViewAllPendingOrders));
-            Button add = view.findViewById(R.id.addToTable);
-            add.setEnabled(false);
-            TextView price = view.findViewById(R.id.totalPrice);
+            add.setVisibility(View.INVISIBLE);
             price.setVisibility(View.INVISIBLE);
         }
         ListView listView = view.findViewById(R.id.dishesList);
@@ -92,8 +98,7 @@ public class TableFragment extends Fragment {
         listView.setAdapter(adapter);
         Button update = view.findViewById(R.id.updateButton);
         update.setOnClickListener(v -> updateAndStartTasks());
-        Button addDish = view.findViewById(R.id.addToTable);
-        addDish.setOnClickListener(v -> {
+        add.setOnClickListener(v -> {
             if (mListener != null) {
                 mListener.onAddDishEventFired(tableNumber);
             }
@@ -103,6 +108,7 @@ public class TableFragment extends Fragment {
             filter.setVisibility(View.VISIBLE);
         }
         filter.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            this.filter = isChecked;
             if (TableFragment.this.isVisible()) {
                 updateOrders(new ArrayList<>(list));
                 if (!isChecked) {
@@ -110,8 +116,18 @@ public class TableFragment extends Fragment {
                 }
             }
         });
+        CheckBox aggregate = view.findViewById(R.id.aggregationCheckBox);
         if (tableNumber == 0) {
-            addDish.setClickable(false);
+            aggregate.setVisibility(View.VISIBLE);
+        }
+        aggregate.setOnCheckedChangeListener(((buttonView, isChecked) -> {
+            this.aggregate = isChecked;
+            if (TableFragment.this.isVisible()) {
+                new ServerOrdersDownloader(TableFragment.this).execute(tableNumber);
+            }
+        }));
+        if (tableNumber == 0) {
+            add.setVisibility(View.INVISIBLE);
         }
         return view;
     }
@@ -148,18 +164,39 @@ public class TableFragment extends Fragment {
         stopTasks();
     }
 
-    private void updateOrders(final List<Order> newList) {
+    @SuppressLint("DefaultLocale")
+    private void updateOrders(final List<Order> rawOrders) {
         assert this.getView() != null;
-        list.clear();
-        final CheckBox filter = getView().findViewById(R.id.filterCheckBox);
-        if (filter.isChecked()) {
-            for (final Order o : newList) {
-                if (o.getDish().getFilterValue() != 0) {
-                    list.add(o);
-                }
+        this.list.clear();
+        final List<Order> orders = stream(rawOrders)
+            .filter(o -> !this.filter || o.getDish().getFilterValue() != 0)
+            .filter(o -> this.tableNumber != 0 || this.aggregate || o.getAmounts().getX() > o.getAmounts().getY())
+            .collect(Collectors.toUnmodifiableList());
+        if (this.aggregate) {
+            try {
+                final Map<IDish, Order> ordersByDish = stream(orders)
+                    .map(o -> {
+                        final IDish oldDish = o.getDish();
+                        final String newName = o.getAmounts().getY() < 0 ? oldDish.getName() : oldDish.getName().substring(0, oldDish.getName().lastIndexOf(NAME_SEPARATOR));
+                        final IDish newDish = new Dish(newName, oldDish.getPrice(), oldDish.getFilterValue());
+                        return new Order(-1, newDish, o.getAmounts());
+                    })
+                    .collect(Collectors.toMap(Order::getDish, Function.identity(), (o1, o2) -> {
+                        final Pair<Integer, Integer> newAmounts = new Pair<>(0, 0);
+                        assert o1.getDish().equals(o2.getDish());
+                        newAmounts.setX(o1.getAmounts().getX() + o2.getAmounts().getX());
+                        newAmounts.setY(o1.getAmounts().getY() + o2.getAmounts().getY());
+                        return new Order(-1, o1.getDish(), newAmounts);
+                    }));
+                final List<Order> aggregatedOrders = stream(ordersByDish.values())
+                    .filter(o -> o.getAmounts().getX() > o.getAmounts().getY())
+                    .collect(Collectors.toUnmodifiableList());
+                list.addAll(aggregatedOrders);
+            } catch (final Exception e) {
+                Log.i("EXCEPTION", "Exception: " + e);
             }
         } else {
-            list.addAll(newList);
+            list.addAll(orders);
         }
         if (tableNumber != 0) {
             Collections.sort(list, (o1, o2) -> (o2.getAmounts().getX() - o2.getAmounts().getY()) - (o1.getAmounts().getX() - o1.getAmounts().getY()));
@@ -180,7 +217,7 @@ public class TableFragment extends Fragment {
             adapter.notifyDataSetChanged();
         }
         double totalPrice = 0;
-        for (Order o : newList) {
+        for (Order o : orders) {
             totalPrice += o.getAmounts().getX() * o.getDish().getPrice();
         }
         if (getView() != null) {
@@ -192,7 +229,7 @@ public class TableFragment extends Fragment {
     private void updateName(final String name) {
         if (getView() != null && tableNumber > 0 && !name.equals("customer" + tableNumber)) {
             TextView nameView = getView().findViewById(R.id.tableTitle);
-            String newName = name.length() > 0 ? (" - " + name) : "";
+            String newName = name.length() > 0 ? (NAME_SEPARATOR + name) : "";
             nameView.setText(getString(R.string.tableTitle) + " " + tableNumber + newName);
         }
     }
@@ -245,7 +282,7 @@ public class TableFragment extends Fragment {
 
         @Override
         @NonNull
-        public View getView(int position, View convertView,@NonNull ViewGroup parent) {
+        public View getView(int position, View convertView, @NonNull ViewGroup parent) {
             if (convertView == null) {
                 convertView = inflater.inflate(R.layout.item_dish, parent, false);
             }
@@ -257,12 +294,12 @@ public class TableFragment extends Fragment {
             });
             convertView.setLongClickable(true);
             convertView.setOnLongClickListener(v -> {
-                if (order.getAmounts().getX().equals(0)) {
+                if (order.getAmounts().getX().equals(0) || TableFragment.this.aggregate) {
                     return false;
                 }
                 order.getAmounts().setY(order.getAmounts().getX());
                 if (tableNumber == 0) {
-                    final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(" - ")), order.getDish().getPrice(), 0);
+                    final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(NAME_SEPARATOR)), order.getDish().getPrice(), 0);
                     final Order newOrder = new Order(order.getTable(), dish, order.getAmounts());
                     new ServerOrdersUploader(TableFragment.this).execute(newOrder);
                 } else {
@@ -270,12 +307,14 @@ public class TableFragment extends Fragment {
                 }
                 return true;
             });
-            convertView.findViewById(R.id.removeButton).setOnClickListener(v -> {
+            final Button removeButton = convertView.findViewById(R.id.removeButton);
+            removeButton.setVisibility((order.getTable() >= 0 && order.getAmounts().getY() >= 0) ? View.VISIBLE : View.INVISIBLE);
+            removeButton.setOnClickListener(v -> {
                 if (order.getAmounts().getX().equals(0)) {
                     return;
                 }
                 if (tableNumber == 0) {
-                    final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(" - ")), order.getDish().getPrice(), 0);
+                    final IDish dish = new Dish(order.getDish().getName().substring(0, order.getDish().getName().lastIndexOf(NAME_SEPARATOR)), order.getDish().getPrice(), 0);
                     final Order newOrder = new Order(order.getTable(), dish, new Pair<>(-1, 1));
                     new ServerOrdersUploader(TableFragment.this).execute(newOrder);
                 } else {
@@ -283,10 +322,17 @@ public class TableFragment extends Fragment {
                 }
             });
             ((TextView) convertView.findViewById(R.id.dish)).setText(order.getDish().getName());
-            ((TextView) convertView.findViewById(R.id.dishToServe))
-                    .setText(getResources().getString(R.string.StringOrdinati) + order.getAmounts().getX());
-            ((TextView) convertView.findViewById(R.id.dishServed))
-                    .setText(getResources().getString(R.string.StringDaServire) + (order.getAmounts().getX() - order.getAmounts().getY()));
+            final TextView dishToServe = convertView.findViewById(R.id.dishToServe);
+            final TextView dishServed = convertView.findViewById(R.id.dishServed);
+            if (order.getAmounts().getY() >= 0) {
+                dishToServe.setVisibility(View.VISIBLE);
+                dishServed.setVisibility(View.VISIBLE);
+                dishToServe.setText(getResources().getString(R.string.StringOrdinati) + order.getAmounts().getX());
+                dishServed.setText(getResources().getString(R.string.StringDaServire) + (order.getAmounts().getX() - order.getAmounts().getY()));
+            } else {
+                dishToServe.setVisibility(View.INVISIBLE);
+                dishServed.setVisibility(View.INVISIBLE);
+            }
             if (!order.getAmounts().getX().equals(order.getAmounts().getY())) {
                 convertView.findViewById(R.id.itemTableLayout).setBackgroundColor(Color.parseColor("#80FF5050"));
             } else {
@@ -374,7 +420,7 @@ public class TableFragment extends Fragment {
                     final int tableNumber = orderDto.getCustomer().getWorkingTable().getTableNumber();
                     String dishName = dishDto.getName();
                     if (objects[0] == 0) {
-                        dishName = dishName + " - " + tableNumber;
+                        dishName = dishName + NAME_SEPARATOR + tableNumber;
                         if (!customerName.equals("customer" + tableNumber)) {
                             dishName = dishName + " (" + customerName + ")";
                         }
@@ -393,7 +439,6 @@ public class TableFragment extends Fragment {
             }
             outputOrders = stream(tablesDishesMap.entrySet())
                 .flatMap(e -> stream(e.getValue().values()))
-                .filter(o -> (objects[0] == 0 && o.getAmounts().getX() > o.getAmounts().getY()) || objects[0] > 0)
                 .collect(Collectors.toUnmodifiableList());
             return new BenderAsyncTaskResult<>(new Pair<>(outputOrders, outputName));
         }
@@ -406,7 +451,7 @@ public class TableFragment extends Fragment {
         @Override
         protected void innerOnUnsuccessfulPostExecute(final BenderAsyncTaskResult<Pair<List<Order>, String>> error) {
             final List<Order> errorOrder = new ArrayList<>(1);
-            errorOrder.add(new Order(TableFragment.this.tableNumber, new Dish(error.getError().getMessage(), 0, 1), new Pair<>(0, 1)));
+            errorOrder.add(new Order(TableFragment.this.tableNumber, new Dish(error.getError().getMessage(), 0, 1), new Pair<>(0, -1)));
             stopTasks();
             commonOnPostExecute(new Pair<>(errorOrder, null));
         }
