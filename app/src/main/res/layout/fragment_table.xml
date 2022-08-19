@@ -21,17 +21,49 @@
         android:textStyle="bold"
         android:layout_alignParentStart="true"
         android:layout_alignEnd="@+id/dishesList"
-        android:autoText="false"
         android:gravity="center_horizontal"
         android:layout_alignParentLeft="true"
         android:layout_alignParentRight="true"
         android:elegantTextHeight="false" />
 
+    <LinearLayout
+            android:id="@+id/tableTopContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_centerInParent="true"
+            android:layout_below="@+id/tableTitle"
+    >
+        <CheckBox
+                android:id="@+id/filterCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/attivaFiltro"
+                android:visibility="invisible"/>
+
+        <CheckBox
+                android:id="@+id/aggregationCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/aggrega"
+                android:visibility="invisible"/>
+
+        <CheckBox
+                android:id="@+id/aggregationAllCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/comprendiInattivi"
+                android:visibility="invisible"/>
+
+
+    </LinearLayout>
+
     <View android:id="@+id/fakeView"
-        android:layout_alignParentBottom="true"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_centerInParent="true"/>
+          android:layout_below="@+id/dishesList"
+          android:layout_alignParentBottom="true"
+          android:layout_width="0dp"
+          android:layout_height="0dp"
+          android:layout_centerInParent="true"/>
 
     <Button
         android:id="@+id/addToTable"
@@ -51,21 +83,12 @@
         android:text="@string/updateButtonString"
         android:id="@+id/updateButton" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@string/tableTitleDetailText"
-        android:id="@+id/tableTitleDetail"
-        android:layout_below="@+id/tableTitle"
-        android:layout_alignParentStart="true" />
-
     <ListView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/dishesList"
-        android:layout_below="@+id/tableTitleDetail"
         android:layout_centerHorizontal="true"
+        android:layout_below="@+id/tableTopContainer"
         android:layout_above="@+id/totalPrice" />
 
     <TextView
@@ -77,15 +100,5 @@
         android:layout_above="@+id/addToTable"
         android:layout_alignParentStart="true"
         android:layout_alignParentEnd="true" />
-
-    <CheckBox
-        android:id="@+id/filterCheckBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Attiva FIltro"
-        android:layout_below="@+id/tableTitle"
-        android:layout_alignParentEnd="true"
-        android:layout_above="@+id/dishesList"
-        android:visibility="invisible" />
 
 </RelativeLayout>

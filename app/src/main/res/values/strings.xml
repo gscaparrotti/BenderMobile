@@ -46,4 +46,7 @@
     <string name="GenericError">Errore Generico</string>
     <string name="Wait">Attendere…</string>
     <string name="loading">LOADING…</string>
+    <string name="attivaFiltro">Attiva Filtro</string>
+    <string name="aggrega">AgGREGa</string>
+    <string name="comprendiInattivi">Comprendi inattivi</string>
 </resources>

@@ -41,18 +41,19 @@
                 android:id="@+id/mainUpdate"/>
 
         <Button
+                android:layout_weight="1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/customers"
+                android:id="@+id/showCustomersButton"/>
+
+        <Button
                 android:text="@string/ViewAllPendingOrders"
                 android:id="@+id/allPending"
                 android:layout_weight="1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
 
-        <Button
-                android:layout_weight="1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/customers"
-                android:id="@+id/showCustomersButton"/>
     </LinearLayout>
 
 
