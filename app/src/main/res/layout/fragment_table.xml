@@ -38,15 +38,23 @@
                 android:id="@+id/filterCheckBox"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Attiva Filtro"
+                android:text="@string/attivaFiltro"
                 android:visibility="invisible"/>
 
         <CheckBox
                 android:id="@+id/aggregationCheckBox"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="AgGREGa"
+                android:text="@string/aggrega"
                 android:visibility="invisible"/>
+
+        <CheckBox
+                android:id="@+id/aggregationAllCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/comprendiInattivi"
+                android:visibility="invisible"/>
+
 
     </LinearLayout>
 
